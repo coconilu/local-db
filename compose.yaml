@@ -1,0 +1,36 @@
+name: local-postgres
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: local-postgres
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:5432:5432"
+    environment:
+      POSTGRES_DB: localdb
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: adsl@1234
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  dashboard-api:
+    build: ./backend
+    container_name: local-postgres-dashboard-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://app:adsl%401234@postgres:5432/localdb
+
+  dashboard-web:
+    build: ./frontend
+    container_name: local-postgres-dashboard-web
+    restart: unless-stopped
+    depends_on:
+      - dashboard-api
+    ports:
+      - "0.0.0.0:15173:5173"
+
+volumes:
+  pg_data:
