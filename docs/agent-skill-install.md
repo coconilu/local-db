@@ -31,13 +31,13 @@ It does not require local Python, Node.js, or a local PostgreSQL client.
 __LOCAL_DB_REPO_PATH__
 ```
 
-For example:
+For example, on Windows:
 
 ```text
-C:\Users\admin\Documents\GitHub\local-db
+C:\Users\you\dev\local-db
 ```
 
-or:
+On macOS or Linux:
 
 ```text
 /Users/alice/dev/local-db
