@@ -1,46 +1,148 @@
 ---
 name: local-postgres-notes
-description: Use when the user wants to add, read, update, delete, list, or search notes, inspect local PostgreSQL tables, run SQL, or apply migration files in the local-postgres Docker container.
+description: Use when the user wants to add, read, update, delete, list, or search notes, inspect local PostgreSQL tables, run SQL, apply migration files, or verify data in the local-postgres Docker Compose database.
 ---
 
 # Local PostgreSQL Notes
 
-Use the local `dbnote` CLI to manage simple notes in the user's local PostgreSQL database. Use `dbadmin` for table inspection, one-off SQL checks, and applying schema migrations.
+Use the project's Docker Compose services to operate the local PostgreSQL database. Do not require the user to install Python, Node.js, or a local PostgreSQL client for normal database work.
 
-## Commands
+## Workspace
 
 Before running commands, switch to the cloned project workspace:
 
 ```powershell
 Set-Location -LiteralPath '__LOCAL_DB_REPO_PATH__'
-python .\local-postgres-tools\dbnote.py init
-python .\local-postgres-tools\dbnote.py add "note text" --tag idea --tag local
-python .\local-postgres-tools\dbnote.py get 1
-python .\local-postgres-tools\dbnote.py update 1 --content "updated note" --tag edited
-python .\local-postgres-tools\dbnote.py delete 1
-python .\local-postgres-tools\dbnote.py list --limit 20
-python .\local-postgres-tools\dbnote.py search "keyword" --limit 20
-python .\local-postgres-tools\dbadmin.py tables
-python .\local-postgres-tools\dbadmin.py describe notes
-python .\local-postgres-tools\dbadmin.py query "select count(*) from notes"
-python .\local-postgres-tools\dbadmin.py apply .\migrations\001_create_agent_test_items.sql
 ```
+
+On macOS or Linux, use the equivalent shell command:
+
+```bash
+cd '__LOCAL_DB_REPO_PATH__'
+```
+
+## Startup
+
+Start or converge the service stack before database operations:
+
+```bash
+docker compose up -d
+```
+
+If images or source files changed, use:
+
+```bash
+docker compose up -d --build
+```
+
+The `db-init` service creates required tables with idempotent SQL. It is safe for it to run again.
+
+## SQL Command Pattern
+
+Use the Dockerized `db-tools` service for SQL:
+
+```bash
+docker compose run --rm -T db-tools -c "select now();"
+```
+
+Run a migration file:
+
+```bash
+docker compose run --rm -T db-tools -f /migrations/001_create_agent_test_items.sql
+```
+
+Re-run all bundled initialization SQL if needed:
+
+```bash
+docker compose run --rm -T db-init
+```
+
+## Notes CRUD
+
+Add a note and return its id:
+
+```bash
+docker compose run --rm -T db-tools -c "insert into notes (content, tags) values ('note text', array['idea','local']::text[]) returning id, content, tags, created_at;"
+```
+
+Verify the inserted note immediately:
+
+```bash
+docker compose run --rm -T db-tools -c "select id, content, tags, created_at, updated_at from notes where id = <id>;"
+```
+
+List recent notes:
+
+```bash
+docker compose run --rm -T db-tools -c "select id, left(content, 120) as content, tags, created_at from notes order by created_at desc limit 20;"
+```
+
+Search notes:
+
+```bash
+docker compose run --rm -T db-tools -c "select id, content, tags, created_at from notes where content ilike '%keyword%' or exists (select 1 from unnest(tags) tag where tag ilike '%keyword%') order by created_at desc limit 20;"
+```
+
+Update a note:
+
+```bash
+docker compose run --rm -T db-tools -c "update notes set content = 'updated note', tags = array['edited']::text[] where id = <id> returning id, content, tags, updated_at;"
+```
+
+Verify the updated note immediately:
+
+```bash
+docker compose run --rm -T db-tools -c "select id, content, tags, updated_at from notes where id = <id>;"
+```
+
+Delete a note:
+
+```bash
+docker compose run --rm -T db-tools -c "delete from notes where id = <id> returning id;"
+```
+
+Verify deletion immediately:
+
+```bash
+docker compose run --rm -T db-tools -c "select count(*) as remaining from notes where id = <id>;"
+```
+
+## Inspection
+
+List public tables:
+
+```bash
+docker compose run --rm -T db-tools -c "select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name;"
+```
+
+Describe a table:
+
+```bash
+docker compose run --rm -T db-tools -c "select column_name, data_type, is_nullable, coalesce(column_default, '') as column_default from information_schema.columns where table_schema = 'public' and table_name = 'notes' order by ordinal_position;"
+```
+
+Run read-only checks:
+
+```bash
+docker compose run --rm -T db-tools -c "select count(*) from notes;"
+```
+
+## Behavior Rules
+
+- Prefer `docker compose run --rm -T db-tools` for database operations.
+- Use `returning` on inserts, updates, and deletes so the changed row is visible.
+- After every insert, update, delete, or migration, run a follow-up `select` that verifies the expected state.
+- Before schema changes, inspect existing tables and columns.
+- Put schema changes under `migrations/` and apply them with `db-tools -f /migrations/<file>.sql`.
+- Keep the dashboard read-only unless the user explicitly asks to add write UI.
+- If a command fails because services are not running, run `docker compose up -d` and retry once.
+- If a SQL string contains user-provided text, escape single quotes by doubling them before embedding in SQL.
 
 ## Assumptions
 
+- Compose project name: `local-postgres`
+- PostgreSQL service: `postgres`
 - Docker container: `local-postgres`
 - PostgreSQL user: `app`
 - Database: `localdb`
-- Table: `notes`
-
-If the CLI fails because the schema is missing, run `init` once and retry.
-
-## Behavior
-
-- Use `add` for capturing a short memory, idea, or note.
-- Use `get`, `update`, and `delete` for note CRUD by id.
-- Use `search` before adding when the user asks whether something already exists.
-- Use `list` when the user asks for recent local database entries.
-- Use `dbadmin.py tables` and `describe` before writing schema changes.
-- For table creation or schema changes, create a SQL file under `migrations\` and run `dbadmin.py apply`.
-- Use `dbadmin.py query` for direct SQL inspection when the user explicitly asks for database inspection or broad database operations.
+- Main note table: `notes`

@@ -14,12 +14,55 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
 
+  db-init:
+    image: postgres:17
+    depends_on:
+      - postgres
+    environment:
+      PGPASSWORD: adsl@1234
+    volumes:
+      - ./local-postgres-tools/schema.sql:/init/001_notes.sql:ro
+      - ./migrations/001_create_agent_test_items.sql:/init/002_agent_test_items.sql:ro
+      - ./migrations/002_create_ai_news_items.sql:/init/003_ai_news_items.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        until pg_isready -h postgres -p 5432 -U app -d localdb; do
+          sleep 1
+        done
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/001_notes.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/002_agent_test_items.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/003_ai_news_items.sql
+
+  db-tools:
+    image: postgres:17
+    profiles:
+      - tools
+    depends_on:
+      - postgres
+    environment:
+      PGPASSWORD: adsl@1234
+    volumes:
+      - ./local-postgres-tools/schema.sql:/init/001_notes.sql:ro
+      - ./migrations:/migrations:ro
+    entrypoint:
+      - psql
+      - -h
+      - postgres
+      - -U
+      - app
+      - -d
+      - localdb
+      - -v
+      - ON_ERROR_STOP=1
+
   dashboard-api:
     build: ./backend
     container_name: local-postgres-dashboard-api
     restart: unless-stopped
     depends_on:
-      - postgres
+      db-init:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://app:adsl%401234@postgres:5432/localdb
 

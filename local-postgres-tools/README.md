@@ -1,32 +1,51 @@
 # Local PostgreSQL Tools
 
-Small Python CLIs for the `local-postgres` Docker container.
+This folder contains optional Python helper CLIs.
 
-Run commands from the cloned project root.
+The primary project workflow is Docker-first:
 
-## Notes CRUD
-
-```powershell
-python .\local-postgres-tools\dbnote.py init
-python .\local-postgres-tools\dbnote.py add "first local note" --tag test --tag local
-python .\local-postgres-tools\dbnote.py get 1
-python .\local-postgres-tools\dbnote.py update 1 --content "updated note" --tag edited
-python .\local-postgres-tools\dbnote.py update 1 --clear-tags
-python .\local-postgres-tools\dbnote.py delete 1
-python .\local-postgres-tools\dbnote.py list --limit 10
-python .\local-postgres-tools\dbnote.py search local
+```bash
+docker compose up -d
+docker compose run --rm -T db-tools -c "select now();"
 ```
 
-## Database Admin
+Use these Python tools only if you already have Python available and prefer the convenience wrappers.
 
-```powershell
-python .\local-postgres-tools\dbadmin.py tables
-python .\local-postgres-tools\dbadmin.py describe notes
-python .\local-postgres-tools\dbadmin.py query "select count(*) from notes"
-python .\local-postgres-tools\dbadmin.py apply .\migrations\001_create_agent_test_items.sql
+## Optional Notes CRUD
+
+```bash
+python ./local-postgres-tools/dbnote.py init
+python ./local-postgres-tools/dbnote.py add "first local note" --tag test --tag local
+python ./local-postgres-tools/dbnote.py get 1
+python ./local-postgres-tools/dbnote.py update 1 --content "updated note" --tag edited
+python ./local-postgres-tools/dbnote.py update 1 --clear-tags
+python ./local-postgres-tools/dbnote.py delete 1
+python ./local-postgres-tools/dbnote.py list --limit 10
+python ./local-postgres-tools/dbnote.py search local
 ```
 
-Use `dbadmin.py apply` for table creation and schema changes. Put migration SQL files in `.\migrations`.
+## Optional Database Admin
+
+```bash
+python ./local-postgres-tools/dbadmin.py tables
+python ./local-postgres-tools/dbadmin.py describe notes
+python ./local-postgres-tools/dbadmin.py query "select count(*) from notes"
+python ./local-postgres-tools/dbadmin.py apply ./migrations/001_create_agent_test_items.sql
+```
+
+## Docker Equivalent
+
+List tables:
+
+```bash
+docker compose run --rm -T db-tools -c "select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE' order by table_name;"
+```
+
+Apply a migration:
+
+```bash
+docker compose run --rm -T db-tools -f /migrations/001_create_agent_test_items.sql
+```
 
 ## Defaults
 
@@ -34,10 +53,10 @@ Use `dbadmin.py apply` for table creation and schema changes. Put migration SQL 
 - User: `app`
 - Database: `localdb`
 
-Override with environment variables:
+Override Python helper defaults with environment variables:
 
-```powershell
-$env:DBNOTE_CONTAINER = "local-postgres"
-$env:DBNOTE_USER = "app"
-$env:DBNOTE_DB = "localdb"
+```bash
+DBNOTE_CONTAINER=local-postgres
+DBNOTE_USER=app
+DBNOTE_DB=localdb
 ```
