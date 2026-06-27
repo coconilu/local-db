@@ -69,3 +69,5 @@ export type QueryResult = {
   columns: string[];
   rows: Record<string, unknown>[];
 };
+
+export type DashboardView = "overview" | "notes" | "ai-news" | "tables" | "query";

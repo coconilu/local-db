@@ -1,13 +1,14 @@
-import "@mantine/core/styles.css";
 import "./styles.css";
 
-import { MantineProvider } from "@mantine/core";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./App";
 
+document.documentElement.classList.add("dark");
+
 createRoot(document.getElementById("root")!).render(
-  <MantineProvider defaultColorScheme="dark">
+  <TooltipProvider>
     <App />
-  </MantineProvider>
+  </TooltipProvider>
 );
