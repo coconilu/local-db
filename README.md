@@ -84,11 +84,38 @@ ai_news_items
 notes
 ```
 
-可选：让你的 agent 注册项目 skill。把下面这段提示发给当前 agent：
+## Agent Skill 注册
+
+clone 项目后，skill 不会自动全局生效。如果你希望 Codex、Kimi Desktop、Claude Code 或其他 agent 以后能直接操作这个本地数据库，把下面这段提示词发给对应 agent：
 
 ```text
-请读取本仓库的 docs/agent-skill-install.md，并按照其中说明安装或注册 .agents/skills/local-postgres-notes/SKILL.md。注册后用 Docker Compose 的 db-tools 服务列出数据库表，确认 skill 可用。
+请先切换到当前 clone 的项目根目录，然后为我注册这个仓库内置的现有数据库 skill。不要生成新的 skill 模板，也不要生成通用 HTTP API skill。
+
+请先确认当前目录能看到 compose.yaml 和 .agents/skills/local-postgres-notes/SKILL.md。
+
+请读取这两个文件：
+- docs/agent-skill-install.md
+- .agents/skills/local-postgres-notes/SKILL.md
+
+然后完成注册：
+1. 找到你自己的持久化指令位置，例如 skill、workflow、rules、memory 或 project instructions。
+2. 将 .agents/skills/local-postgres-notes/SKILL.md 注册进去，或把它的内容复制到你的持久化指令位置。
+3. 将 skill 内容里的 __LOCAL_DB_REPO_PATH__ 替换为当前 clone 目录的绝对路径。
+4. 如果需要重启或 reload 才能生效，请明确告诉我。
+5. 注册完成后，回到当前项目根目录，用 docker compose run --rm -T db-tools ... 列出 public tables，验证 skill 可用。
+
+注意：这个 skill 通过 Docker Compose 的 db-tools 服务操作 PostgreSQL，不是通过 http://localhost:15173 这个 dashboard URL 操作数据库。
 ```
+
+项目内置的 skill 文件是：
+
+```text
+.agents/skills/local-postgres-notes/SKILL.md
+```
+
+跨 agent 的安装指导在：
+
+[docs/agent-skill-install.md](docs/agent-skill-install.md)
 
 ## `docker compose up -d --build` 是否幂等
 
@@ -355,33 +382,6 @@ curl -sS -H "Content-Type: application/json" \
 | `GET` | `/api/tables/{table}` | 读取表字段和索引 |
 | `POST` | `/api/query/read-only` | 执行只读 SQL |
 
-## Agent Skill 注册
-
-clone 项目后，skill 不会自动全局生效。项目内置了一份通用 skill 模板：
-
-```text
-.agents/skills/local-postgres-notes/SKILL.md
-```
-
-跨 agent 的安装指导在：
-
-[docs/agent-skill-install.md](docs/agent-skill-install.md)
-
-核心逻辑：
-
-- 把 skill 模板复制或注册到当前 agent 的 skill、workflow、rules、memory 或 project instructions 位置。
-- 把模板中的 `__LOCAL_DB_REPO_PATH__` 替换为当前 clone 目录的绝对路径。
-- 重启或 reload agent。
-- 让 agent 通过 `docker compose run --rm -T db-tools ...` 验证数据库表。
-
-Windows 用户可以使用可选 helper：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-skill.ps1
-```
-
-但这个脚本只是便利工具。通用方案是阅读并执行 `docs/agent-skill-install.md`。
-
 ## 局域网访问
 
 查看本机局域网 IP：
@@ -443,8 +443,6 @@ http://<Host-LAN-IP>:15173
 |   `-- SKILL.md
 |-- docs/
 |   `-- agent-skill-install.md
-`-- scripts/
-    `-- install-skill.ps1
 ```
 
 ## 开发说明

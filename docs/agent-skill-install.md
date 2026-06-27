@@ -8,6 +8,8 @@ This project includes a portable skill template for agents:
 
 The template is not installed automatically after `git clone`. Each agent has its own way to load skills, project instructions, memory files, or custom workflows. Use this document to guide the current agent through the installation.
 
+Important: this guide is for installing or registering the existing skill. Do not generate a new generic HTTP API skill from the dashboard URL. The dashboard at `http://localhost:15173` is the read-only UI; the skill operates the database through Docker Compose and the `db-tools` service.
+
 ## What The Skill Does
 
 The skill teaches an agent to operate this project through Docker Compose:
@@ -61,36 +63,16 @@ docker compose run --rm -T db-tools -c "select table_name from information_schem
 If your agent can edit its own skills or project instructions, give it this prompt from the cloned repo root:
 
 ```text
-Install this repository's agent skill.
+Install/register this repository's existing database skill. Do not create a new skill template.
 
-Use `.agents/skills/local-postgres-notes/SKILL.md` as the source template.
+Read `docs/agent-skill-install.md` and `.agents/skills/local-postgres-notes/SKILL.md`.
+Use `.agents/skills/local-postgres-notes/SKILL.md` as the skill body/source template.
 Register it in your own skill/workflow/custom-instruction location.
 Replace `__LOCAL_DB_REPO_PATH__` with the absolute path of this repository.
 After installation, reload yourself if needed and verify by listing the database tables through Docker Compose.
 Do not require local Python, Node.js, or a local PostgreSQL client.
+Do not ask for API endpoints; this skill uses `docker compose run --rm -T db-tools ...`, not the dashboard HTTP URL.
 ```
-
-## Optional Windows Helper
-
-On Windows, this repository also includes a convenience installer:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-skill.ps1
-```
-
-It copies the skill to:
-
-```text
-%USERPROFILE%\.agents\skills\local-postgres-notes
-```
-
-Use `-SkillRoot` if your agent expects a different skill directory:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\install-skill.ps1 -SkillRoot "C:\path\to\agent\skills"
-```
-
-This script is optional. The portable source of truth is the template plus the replacement rule above.
 
 ## Notes For Different Agents
 
