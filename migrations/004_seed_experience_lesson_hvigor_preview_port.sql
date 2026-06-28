@@ -1,0 +1,71 @@
+insert into experience_lessons (
+  lesson_key,
+  title,
+  domain,
+  project,
+  environment,
+  severity,
+  status,
+  context,
+  symptoms,
+  root_cause,
+  resolution,
+  prevention,
+  verification,
+  commands,
+  artifacts,
+  tags,
+  metadata,
+  learned_at
+) values (
+  $$harmonyos-deveco-preview-hvigor-daemon-port-45000-conflict$$,
+  $$DevEco Studio Preview 报 No Idle daemon：Hvigor 45000 端口段冲突$$,
+  $$harmonyos$$,
+  $$shiyin_claude$$,
+  $$Windows / DevEco Studio 6.1.1 / Hvigor 6.24.2 / HarmonyOS 6.1.1 API 24$$,
+  $$high$$,
+  $$resolved$$,
+  $$开发 HarmonyOS 项目 shiyin_claude 时，SDK 和模拟器安装完成后，DevEco Studio Previewer 仍然报 Create hvigor server failed. No Idle daemon can be found，退出代码为 -1。项目本身可以构建，问题集中在 Preview 启动 Hvigor daemon。$$,
+  array[
+    $$DevEco Studio Previewer 执行 PreviewBuild --watch 后立即退出，退出代码 -1$$,
+    $$日志反复出现 No available port was found in the range: 45000 - 45099$$,
+    $$netstat / Get-NetTCPConnection 不显示普通监听进程，但 Node 绑定 127.0.0.1:45000-45099 返回 EADDRINUSE$$,
+    $$项目级 execution.daemon=false 对命令行预览构建有帮助，但 DevEco Preview 面板仍会触发固定端口的 Hvigor server$$
+  ]::text[],
+  $$本机回环地址上的 45000-45099 端口段被系统、虚拟网络或安全层占用；Hvigor 6.24.2 的 daemon 常量固定使用 45000-45099，导致 Previewer 无法创建可用 daemon。这个问题不是 SDK、模拟器或 ArkTS 代码导致。$$,
+  $$先验证 44000-44099 端口段可用；备份 DevEco 自带 Hvigor 的 daemon-const.js；将 DAEMON_SERVER_MIN_LISTEN_PORT 从 45e3 改为 44e3，将 DAEMON_SERVER_MAX_LISTEN_PORT 从 45099 改为 44099；删除 C:\Users\admin\.hvigor\daemon\cache；完全退出并重启 DevEco Studio。$$,
+  $$遇到 No Idle daemon 时，先查 C:\Users\admin\.hvigor\daemon\log\<hvigor-version>\daemon-client.log 和 daemon-*.log，再用最小 Node net.createServer 脚本测试端口绑定。注意 DevEco/Hvigor 升级可能覆盖安装目录补丁，需要保留备份并复核端口常量。$$,
+  $$用原始 PreviewBuild --watch 命令验证，不再立即报 No Idle daemon；项目 build.log 出现 BUILD SUCCESSFUL in 6 s 804 ms；随后 DevEco Previewer 可以打开页面。$$,
+  $$[
+    {"command":"node net.createServer bind test for 44000/45000 ranges","purpose":"确认 45000-45099 不可用而 44000-44099 可用"},
+    {"command":"Remove-Item -Recurse -Force C:\\Users\\admin\\.hvigor\\daemon\\cache","purpose":"清理旧 Hvigor daemon 缓存"},
+    {"command":"PreviewBuild --watch --analyze=normal --parallel --incremental","purpose":"用 DevEco 原始预览命令验证修复"}
+  ]$$::jsonb,
+  $$[
+    {"type":"file","path":"C:\\Program Files\\Huawei\\DevEco Studio\\tools\\hvigor\\hvigor\\src\\base\\daemon\\const\\daemon-const.js","note":"Hvigor daemon 端口常量补丁位置"},
+    {"type":"backup","path":"C:\\Users\\admin\\Documents\\doing\\daemon-const.js.bak-20260628-000936","note":"补丁前备份"},
+    {"type":"project_config","path":"C:\\Users\\admin\\DevEcoStudioProjects\\shiyin_claude\\hvigor\\hvigor-config.json5","note":"项目级 daemon=false 配置，保留为辅助规避"}
+  ]$$::jsonb,
+  array[$$harmonyos$$,$$deveco-studio$$,$$hvigor$$,$$previewer$$,$$windows-port$$,$$daemon$$,$$troubleshooting$$]::text[],
+  $${"original_port_range":"45000-45099","patched_port_range":"44000-44099","deveco_studio_version":"6.1.1.280","hvigor_version":"6.24.2","sdk":"HarmonyOS 6.1.1 API 24"}$$::jsonb,
+  now()
+)
+on conflict (lesson_key) do update set
+  title = excluded.title,
+  domain = excluded.domain,
+  project = excluded.project,
+  environment = excluded.environment,
+  severity = excluded.severity,
+  status = excluded.status,
+  context = excluded.context,
+  symptoms = excluded.symptoms,
+  root_cause = excluded.root_cause,
+  resolution = excluded.resolution,
+  prevention = excluded.prevention,
+  verification = excluded.verification,
+  commands = excluded.commands,
+  artifacts = excluded.artifacts,
+  tags = excluded.tags,
+  metadata = excluded.metadata,
+  learned_at = excluded.learned_at,
+  updated_at = now();

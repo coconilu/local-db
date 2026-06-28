@@ -24,6 +24,8 @@ services:
       - ./local-postgres-tools/schema.sql:/init/001_notes.sql:ro
       - ./migrations/001_create_agent_test_items.sql:/init/002_agent_test_items.sql:ro
       - ./migrations/002_create_ai_news_items.sql:/init/003_ai_news_items.sql:ro
+      - ./migrations/003_create_experience_lessons.sql:/init/004_experience_lessons.sql:ro
+      - ./migrations/004_seed_experience_lesson_hvigor_preview_port.sql:/init/005_seed_experience_lesson_hvigor_preview_port.sql:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -33,6 +35,8 @@ services:
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/001_notes.sql
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/002_agent_test_items.sql
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/003_ai_news_items.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/004_experience_lessons.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/005_seed_experience_lesson_hvigor_preview_port.sql
 
   db-tools:
     image: postgres:17
