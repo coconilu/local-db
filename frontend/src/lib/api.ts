@@ -1,4 +1,4 @@
-import type { AiNewsItem, HealthResponse, Note, QueryResult, TableDetail, TableSummary } from "../types";
+import type { AiNewsItem, HealthResponse, Note, QueryResult, TableDetail, TableRowsResponse, TableSummary } from "../types";
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -20,6 +20,8 @@ export const api = {
     request<{ items: AiNewsItem[] }>(`/api/ai-news?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
   tables: () => request<{ items: TableSummary[] }>("/api/tables"),
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),
+  tableRows: (name: string, limit = 50) =>
+    request<TableRowsResponse>(`/api/tables/${encodeURIComponent(name)}/rows?limit=${limit}`),
   readOnlyQuery: (sql: string) =>
     request<QueryResult>("/api/query/read-only", {
       method: "POST",

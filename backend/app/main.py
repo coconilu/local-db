@@ -8,6 +8,7 @@ from typing import Any
 import psycopg
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from psycopg import sql as pg_sql
 from psycopg.rows import dict_row
 from pydantic import BaseModel
 
@@ -63,6 +64,21 @@ def one(sql: str, params: tuple[Any, ...] = ()) -> dict[str, Any] | None:
     return result[0] if result else None
 
 
+def ensure_public_table(table_name: str) -> None:
+    exists = one(
+        """
+        select table_name
+        from information_schema.tables
+        where table_schema = 'public'
+          and table_type = 'BASE TABLE'
+          and table_name = %s;
+        """,
+        (table_name,),
+    )
+    if not exists:
+        raise HTTPException(status_code=404, detail="table not found")
+
+
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     current = one("select now() as server_time, current_database() as database, current_user as user;")
@@ -90,14 +106,15 @@ def notes(
     filters: list[str] = []
     params: list[Any] = []
     if query:
-        filters.append("content ilike %s")
-        params.append(f"%{query}%")
+        filters.append("(content ilike %s or source ilike %s)")
+        like = f"%{query}%"
+        params.extend([like, like])
     if tag:
         filters.append("%s = any(tags)")
         params.append(tag)
     where = "where " + " and ".join(filters) if filters else ""
     sql = f"""
-        select id, content, tags, created_at, updated_at
+        select id, content, source, tags, created_at, updated_at
         from notes
         {where}
         order by created_at desc
@@ -166,18 +183,7 @@ def tables() -> dict[str, Any]:
 
 @app.get("/api/tables/{table_name}")
 def table_detail(table_name: str) -> dict[str, Any]:
-    exists = one(
-        """
-        select table_name
-        from information_schema.tables
-        where table_schema = 'public'
-          and table_type = 'BASE TABLE'
-          and table_name = %s;
-        """,
-        (table_name,),
-    )
-    if not exists:
-        raise HTTPException(status_code=404, detail="table not found")
+    ensure_public_table(table_name)
 
     columns = rows(
         """
@@ -200,6 +206,45 @@ def table_detail(table_name: str) -> dict[str, Any]:
         (table_name,),
     )
     return {"table": table_name, "columns": columns, "indexes": indexes}
+
+
+@app.get("/api/tables/{table_name}/rows")
+def table_rows(
+    table_name: str,
+    limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+) -> dict[str, Any]:
+    ensure_public_table(table_name)
+    column_rows = rows(
+        """
+        select column_name
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = %s
+        order by ordinal_position;
+        """,
+        (table_name,),
+    )
+    column_names = [column["column_name"] for column in column_rows]
+    order_column = next(
+        (
+            candidate
+            for candidate in ("created_at", "updated_at", "digest_run_at", "published_at", "id")
+            if candidate in column_names
+        ),
+        None,
+    )
+
+    query_parts = [pg_sql.SQL("select * from {}").format(pg_sql.Identifier(table_name))]
+    if order_column:
+        query_parts.append(pg_sql.SQL(" order by {} desc").format(pg_sql.Identifier(order_column)))
+    query_parts.append(pg_sql.SQL(" limit %s offset %s"))
+
+    with db() as cur:
+        cur.execute(pg_sql.SQL("").join(query_parts), (clamp_limit(limit), offset))
+        columns = [column.name for column in cur.description or []]
+        result = [dict(row) for row in cur.fetchall()]
+    return {"columns": columns, "rows": result}
 
 
 @app.post("/api/query/read-only")

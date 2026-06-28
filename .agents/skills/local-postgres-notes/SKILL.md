@@ -62,37 +62,37 @@ docker compose run --rm -T db-init
 Add a note and return its id:
 
 ```bash
-docker compose run --rm -T db-tools -c "insert into notes (content, tags) values ('note text', array['idea','local']::text[]) returning id, content, tags, created_at;"
+docker compose run --rm -T db-tools -c "insert into notes (content, source, tags) values ('note text', 'https://example.com/source', array['idea','local']::text[]) returning id, content, source, tags, created_at;"
 ```
 
 Verify the inserted note immediately:
 
 ```bash
-docker compose run --rm -T db-tools -c "select id, content, tags, created_at, updated_at from notes where id = <id>;"
+docker compose run --rm -T db-tools -c "select id, content, source, tags, created_at, updated_at from notes where id = <id>;"
 ```
 
 List recent notes:
 
 ```bash
-docker compose run --rm -T db-tools -c "select id, left(content, 120) as content, tags, created_at from notes order by created_at desc limit 20;"
+docker compose run --rm -T db-tools -c "select id, left(content, 120) as content, source, tags, created_at from notes order by created_at desc limit 20;"
 ```
 
 Search notes:
 
 ```bash
-docker compose run --rm -T db-tools -c "select id, content, tags, created_at from notes where content ilike '%keyword%' or exists (select 1 from unnest(tags) tag where tag ilike '%keyword%') order by created_at desc limit 20;"
+docker compose run --rm -T db-tools -c "select id, content, source, tags, created_at from notes where content ilike '%keyword%' or source ilike '%keyword%' or exists (select 1 from unnest(tags) tag where tag ilike '%keyword%') order by created_at desc limit 20;"
 ```
 
 Update a note:
 
 ```bash
-docker compose run --rm -T db-tools -c "update notes set content = 'updated note', tags = array['edited']::text[] where id = <id> returning id, content, tags, updated_at;"
+docker compose run --rm -T db-tools -c "update notes set content = 'updated note', source = 'https://example.com/updated', tags = array['edited']::text[] where id = <id> returning id, content, source, tags, updated_at;"
 ```
 
 Verify the updated note immediately:
 
 ```bash
-docker compose run --rm -T db-tools -c "select id, content, tags, updated_at from notes where id = <id>;"
+docker compose run --rm -T db-tools -c "select id, content, source, tags, updated_at from notes where id = <id>;"
 ```
 
 Delete a note:
@@ -130,6 +130,7 @@ docker compose run --rm -T db-tools -c "select count(*) from notes;"
 ## Behavior Rules
 
 - Prefer `docker compose run --rm -T db-tools` for database operations.
+- Store related URLs or references in `notes.source` when the user provides a source; leave it null when no source is known.
 - Use `returning` on inserts, updates, and deletes so the changed row is visible.
 - After every insert, update, delete, or migration, run a follow-up `select` that verifies the expected state.
 - Before schema changes, inspect existing tables and columns.

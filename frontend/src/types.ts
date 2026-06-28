@@ -16,6 +16,7 @@ export type HealthResponse = {
 export type Note = {
   id: number;
   content: string;
+  source?: string | null;
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -69,5 +70,7 @@ export type QueryResult = {
   columns: string[];
   rows: Record<string, unknown>[];
 };
+
+export type TableRowsResponse = QueryResult;
 
 export type DashboardView = "overview" | "notes" | "ai-news" | "tables" | "query";

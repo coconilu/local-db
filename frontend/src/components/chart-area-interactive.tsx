@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -77,9 +77,11 @@ export function ChartAreaInteractive({
   const activity = useMemo(() => buildActivity(notes, news), [news, notes]);
   const filteredData = useMemo(() => filterActivity(activity, timeRange), [activity, timeRange]);
   const estimatedRows = tables.reduce((total, table) => total + Math.max(0, table.estimated_rows), 0);
+  const maxActivity = Math.max(0, ...filteredData.map((item) => item.notes + item.news));
+  const yMax = Math.max(1, Math.ceil(maxActivity * 1.15));
 
   return (
-    <Card className="@container/card">
+    <Card className="@container/card overflow-hidden">
       <CardHeader>
         <CardTitle>Database activity</CardTitle>
         <CardDescription>
@@ -114,10 +116,10 @@ export function ChartAreaInteractive({
           </Select>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+      <CardContent className="overflow-hidden px-2 pt-4 sm:px-6 sm:pt-6">
         {filteredData.length > 0 ? (
-          <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full">
-            <AreaChart data={filteredData}>
+          <ChartContainer config={chartConfig} className="aspect-auto h-[260px] w-full min-w-0 overflow-hidden">
+            <AreaChart data={filteredData} margin={{ bottom: 0, left: 12, right: 12, top: 24 }}>
               <defs>
                 <linearGradient id="fillNotes" x1="0" x2="0" y1="0" y2="1">
                   <stop offset="5%" stopColor="var(--color-notes)" stopOpacity={0.9} />
@@ -129,6 +131,7 @@ export function ChartAreaInteractive({
                 </linearGradient>
               </defs>
               <CartesianGrid vertical={false} />
+              <YAxis domain={[0, yMax]} hide />
               <XAxis
                 axisLine={false}
                 dataKey="date"

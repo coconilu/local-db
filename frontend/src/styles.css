@@ -151,3 +151,81 @@
 #root {
   min-height: 100vh;
 }
+
+.table-rows-scroll {
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior: contain;
+}
+
+.markdown-body {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.markdown-body :where(p, ul, ol, blockquote, pre, table) {
+  margin-block: 0.75rem;
+}
+
+.markdown-body :where(h1, h2, h3) {
+  margin-block: 1rem 0.5rem;
+  font-weight: 650;
+  color: var(--foreground);
+}
+
+.markdown-body :where(h1) {
+  font-size: 1.25rem;
+}
+
+.markdown-body :where(h2) {
+  font-size: 1.05rem;
+}
+
+.markdown-body :where(a) {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.markdown-body :where(code) {
+  border-radius: var(--radius-sm);
+  background: var(--muted);
+  padding: 0.1rem 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+.markdown-body :where(pre) {
+  max-width: 100%;
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: oklch(0.1 0.012 255);
+  padding: 0.875rem;
+}
+
+.markdown-body :where(pre code) {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-body :where(ul, ol) {
+  padding-left: 1.25rem;
+}
+
+.markdown-body :where(blockquote) {
+  border-left: 3px solid var(--border);
+  padding-left: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.markdown-body :where(table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-body :where(th, td) {
+  border: 1px solid var(--border);
+  padding: 0.375rem 0.5rem;
+}

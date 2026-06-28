@@ -1,12 +1,16 @@
 create table if not exists notes (
   id bigserial primary key,
   content text not null,
+  source text,
   tags text[] not null default '{}',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table notes add column if not exists source text;
+
 create index if not exists notes_created_at_idx on notes (created_at desc);
+create index if not exists notes_source_idx on notes (source) where source is not null;
 create index if not exists notes_tags_idx on notes using gin (tags);
 
 create or replace function set_notes_updated_at()

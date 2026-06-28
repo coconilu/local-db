@@ -20,18 +20,20 @@ def cmd_init(_: argparse.Namespace) -> None:
 def cmd_add(args: argparse.Namespace) -> None:
     tags = args.tag or []
     sql = (
-        "insert into notes (content, tags) values "
-        f"({sql_literal(args.content)}, {sql_array(tags)}) "
-        "returning id, created_at;"
+        "insert into notes (content, source, tags) values "
+        f"({sql_literal(args.content)}, {sql_literal(args.source) if args.source else 'null'}, {sql_array(tags)}) "
+        "returning id, coalesce(source, ''), created_at;"
     )
     output = run_psql(sql)
-    note_id, created_at = output.split("\t", 1)
+    note_id, source, created_at = (output.split("\t", 2) + [""] * 3)[:3]
     print(f"added note {note_id} at {created_at}")
+    if source:
+        print(f"source: {source}")
 
 
 def cmd_get(args: argparse.Namespace) -> None:
     sql = (
-        "select id, created_at, updated_at, array_to_string(tags, ','), content "
+        "select id, created_at, updated_at, coalesce(source, ''), array_to_string(tags, ','), content "
         "from notes "
         f"where id = {args.id};"
     )
@@ -46,24 +48,31 @@ def cmd_update(args: argparse.Namespace) -> None:
     if args.clear_tags and args.tag:
         print("use either --tag or --clear-tags, not both", file=sys.stderr)
         raise SystemExit(2)
+    if args.clear_source and args.source is not None:
+        print("use either --source or --clear-source, not both", file=sys.stderr)
+        raise SystemExit(2)
 
     assignments = []
     if args.content is not None:
         assignments.append(f"content = {sql_literal(args.content)}")
+    if args.clear_source:
+        assignments.append("source = null")
+    elif args.source is not None:
+        assignments.append(f"source = {sql_literal(args.source)}")
     if args.clear_tags:
         assignments.append("tags = ARRAY[]::text[]")
     elif args.tag is not None:
         assignments.append(f"tags = {sql_array(args.tag)}")
 
     if not assignments:
-        print("nothing to update; pass --content, --tag, or --clear-tags", file=sys.stderr)
+        print("nothing to update; pass --content, --source, --clear-source, --tag, or --clear-tags", file=sys.stderr)
         raise SystemExit(2)
 
     sql = (
         "update notes set "
         + ", ".join(assignments)
         + f" where id = {args.id} "
-        + "returning id, created_at, updated_at, array_to_string(tags, ','), content;"
+        + "returning id, created_at, updated_at, coalesce(source, ''), array_to_string(tags, ','), content;"
     )
     output = run_psql(sql)
     if not output:
@@ -83,7 +92,7 @@ def cmd_delete(args: argparse.Namespace) -> None:
 def cmd_list(args: argparse.Namespace) -> None:
     limit = positive_int(args.limit, maximum=100)
     sql = (
-        "select id, created_at, array_to_string(tags, ','), "
+        "select id, created_at, coalesce(source, ''), array_to_string(tags, ','), "
         "replace(content, E'\\n', ' ') "
         "from notes order by created_at desc "
         f"limit {limit};"
@@ -95,10 +104,11 @@ def cmd_search(args: argparse.Namespace) -> None:
     limit = positive_int(args.limit, maximum=100)
     query = args.query
     sql = (
-        "select id, created_at, array_to_string(tags, ','), "
+        "select id, created_at, coalesce(source, ''), array_to_string(tags, ','), "
         "replace(content, E'\\n', ' ') "
         "from notes "
         f"where content ilike '%' || {sql_literal(query)} || '%' "
+        f"or source ilike '%' || {sql_literal(query)} || '%' "
         f"or exists (select 1 from unnest(tags) tag where tag ilike '%' || {sql_literal(query)} || '%') "
         "order by created_at desc "
         f"limit {limit};"
@@ -107,9 +117,11 @@ def cmd_search(args: argparse.Namespace) -> None:
 
 
 def print_note(output: str) -> None:
-    note_id, created_at, updated_at, tags, content = (output.split("\t", 4) + [""] * 5)[:5]
+    note_id, created_at, updated_at, source, tags, content = (output.split("\t", 5) + [""] * 6)[:6]
     tag_text = f" [{tags}]" if tags else ""
     print(f"{note_id} | created {created_at} | updated {updated_at}{tag_text}")
+    if source:
+        print(f"source: {source}")
     print(content)
 
 
@@ -118,9 +130,10 @@ def print_rows(output: str) -> None:
         print("no rows")
         return
     for line in output.splitlines():
-        note_id, created_at, tags, content = (line.split("\t", 3) + [""] * 4)[:4]
+        note_id, created_at, source, tags, content = (line.split("\t", 4) + [""] * 5)[:5]
         tag_text = f" [{tags}]" if tags else ""
-        print(f"{note_id} | {created_at}{tag_text} | {content}")
+        source_text = f" <{source}>" if source else ""
+        print(f"{note_id} | {created_at}{tag_text}{source_text} | {content}")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -135,6 +148,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     add = subparsers.add_parser("add", help="Add one note.")
     add.add_argument("content")
+    add.add_argument("--source", help="Related source URL or reference.")
     add.add_argument("--tag", action="append", help="Attach a tag. Repeatable.")
     add.set_defaults(func=cmd_add)
 
@@ -145,6 +159,8 @@ def build_parser() -> argparse.ArgumentParser:
     update = subparsers.add_parser("update", help="Update one note.")
     update.add_argument("id", type=int)
     update.add_argument("--content", help="Replace the note content.")
+    update.add_argument("--source", help="Replace the related source URL or reference.")
+    update.add_argument("--clear-source", action="store_true", help="Remove the source.")
     update.add_argument("--tag", action="append", help="Replace tags. Repeatable.")
     update.add_argument("--clear-tags", action="store_true", help="Remove all tags.")
     update.set_defaults(func=cmd_update)

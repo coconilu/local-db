@@ -1,6 +1,8 @@
 import { ExternalLinkIcon, Loader2Icon, Table2Icon } from "lucide-react";
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +14,13 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -30,9 +39,28 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, formatDate } from "@/lib/api";
-import type { AiNewsItem, DashboardView, Note, TableDetail, TableSummary } from "@/types";
+import type { AiNewsItem, DashboardView, Note, QueryResult, TableDetail, TableSummary } from "@/types";
 
 type DataTab = "notes" | "ai-news" | "tables";
+
+type DetailMetadata = {
+  label: string;
+  value: string;
+};
+
+type MarkdownDetail = {
+  title: string;
+  description: string;
+  body: string;
+  source?: string | null;
+  metadata?: DetailMetadata[];
+};
+
+type TablePreview = {
+  name: string;
+  detail: TableDetail;
+  data: QueryResult;
+};
 
 function toDataTab(view: DashboardView): DataTab {
   if (view === "ai-news" || view === "tables") return view;
@@ -42,6 +70,10 @@ function toDataTab(view: DashboardView): DataTab {
 function toDashboardView(value: string): DashboardView {
   if (value === "ai-news" || value === "tables") return value;
   return "notes";
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 export function DataTable({
@@ -59,20 +91,132 @@ export function DataTable({
   tables: TableSummary[];
   view: DashboardView;
 }) {
-  const [tableDetail, setTableDetail] = useState<TableDetail | null>(null);
+  const [detail, setDetail] = useState<MarkdownDetail | null>(null);
+  const [tablePreview, setTablePreview] = useState<TablePreview | null>(null);
   const [loadingTable, setLoadingTable] = useState("");
+  const [isResizingTableSheet, setIsResizingTableSheet] = useState(false);
+  const [tableSheetWidth, setTableSheetWidth] = useState<number | null>(null);
   const activeTab = toDataTab(view);
+  const tableSheetStyle = useMemo(
+    () =>
+      ({
+        maxWidth: "92vw",
+        minWidth: "min(360px, calc(100vw - 1rem))",
+        width: tableSheetWidth ? `${tableSheetWidth}px` : "50vw"
+      }) as CSSProperties,
+    [tableSheetWidth]
+  );
 
-  async function inspectTable(tableName: string) {
+  async function openTable(tableName: string) {
     setLoadingTable(tableName);
     try {
-      const detail = await api.table(tableName);
-      setTableDetail(detail);
+      const [detailResponse, rowsResponse] = await Promise.all([api.table(tableName), api.tableRows(tableName)]);
+      setTablePreview({ name: tableName, detail: detailResponse, data: rowsResponse });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : `Failed to inspect ${tableName}`);
+      toast.error(err instanceof Error ? err.message : `Failed to open ${tableName}`);
     } finally {
       setLoadingTable("");
     }
+  }
+
+  function openNote(note: Note) {
+    setDetail({
+      title: `Note #${note.id}`,
+      description: `Created ${formatDate(note.created_at)}`,
+      body: note.content,
+      source: note.source,
+      metadata: [
+        { label: "Tags", value: note.tags.length ? note.tags.join(", ") : "none" },
+        { label: "Updated", value: formatDate(note.updated_at) }
+      ]
+    });
+  }
+
+  function openNewsItem(item: AiNewsItem) {
+    const body = [
+      "## Summary",
+      item.summary,
+      item.why_it_matters ? `## Why it matters\n\n${item.why_it_matters}` : "",
+      item.entities.length ? `## Entities\n\n${item.entities.map((entity) => `- ${entity}`).join("\n")}` : "",
+      item.tags.length ? `## Tags\n\n${item.tags.map((tag) => `- ${tag}`).join("\n")}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    setDetail({
+      title: item.title,
+      description: `${item.source_name} · ${item.priority} · ${formatDate(item.updated_at)}`,
+      body,
+      source: item.source_url,
+      metadata: [
+        { label: "Category", value: item.category },
+        { label: "Signal", value: item.signal_type },
+        { label: "Verification", value: item.verification_status }
+      ]
+    });
+  }
+
+  const resizeTableSheet = useCallback((clientX: number) => {
+    const viewportWidth = window.innerWidth;
+    const minWidth = Math.min(360, viewportWidth - 16);
+    const maxWidth = Math.max(minWidth, Math.floor(viewportWidth * 0.92));
+    setTableSheetWidth(Math.round(clamp(viewportWidth - clientX, minWidth, maxWidth)));
+  }, []);
+
+  useEffect(() => {
+    if (!isResizingTableSheet) return;
+
+    function handlePointerMove(event: globalThis.PointerEvent) {
+      resizeTableSheet(event.clientX);
+    }
+
+    function handleMouseMove(event: globalThis.MouseEvent) {
+      resizeTableSheet(event.clientX);
+    }
+
+    function stopResize() {
+      setIsResizingTableSheet(false);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResize);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopResize);
+      window.removeEventListener("pointercancel", stopResize);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", stopResize);
+    };
+  }, [isResizingTableSheet, resizeTableSheet]);
+
+  function startTableSheetResize(event: PointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsResizingTableSheet(true);
+    resizeTableSheet(event.clientX);
+  }
+
+  function startTableSheetMouseResize(event: ReactMouseEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    setIsResizingTableSheet(true);
+    resizeTableSheet(event.clientX);
+  }
+
+  function moveTableSheetResize(event: PointerEvent<HTMLButtonElement>) {
+    if (!isResizingTableSheet) return;
+    resizeTableSheet(event.clientX);
+  }
+
+  function endTableSheetResize(event: PointerEvent<HTMLButtonElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setIsResizingTableSheet(false);
   }
 
   return (
@@ -101,78 +245,52 @@ export function DataTable({
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="notes">
           <DataCard description="Recent rows from the notes table" title="Notes">
-            <NotesTable isLoading={isLoading} notes={notes} />
+            <NotesTable isLoading={isLoading} notes={notes} onOpenDetail={openNote} />
           </DataCard>
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-news">
           <DataCard description="AI signal rows with source and verification context" title="AI News">
-            <NewsTable isLoading={isLoading} news={news} />
+            <NewsTable isLoading={isLoading} news={news} onOpenDetail={openNewsItem} />
           </DataCard>
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="tables">
-          <DataCard description="Public schema tables and estimated row counts" title="Tables">
+          <DataCard description="Click a table to inspect recent rows and schema" title="Tables">
             <TablesTable
               isLoading={isLoading}
               loadingTable={loadingTable}
-              onInspectTable={(name) => void inspectTable(name)}
+              onOpenTable={(name) => void openTable(name)}
               tables={tables}
             />
           </DataCard>
         </TabsContent>
       </Tabs>
 
-      <Sheet onOpenChange={(open) => !open && setTableDetail(null)} open={tableDetail !== null}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+      <Sheet onOpenChange={(open) => !open && setTablePreview(null)} open={tablePreview !== null}>
+        <SheetContent
+          className={`overflow-hidden ${isResizingTableSheet ? "transition-none select-none" : ""}`}
+          style={tableSheetStyle}
+        >
+          <button
+            aria-label="Resize table drawer"
+            className="absolute inset-y-0 left-0 w-3 cursor-ew-resize border-l border-transparent outline-none hover:border-primary/60 focus-visible:border-primary"
+            onMouseDown={startTableSheetMouseResize}
+            onPointerCancel={endTableSheetResize}
+            onPointerDown={startTableSheetResize}
+            onPointerMove={moveTableSheetResize}
+            onPointerUp={endTableSheetResize}
+            type="button"
+          />
           <SheetHeader>
-            <SheetTitle>{tableDetail?.table ?? "Table details"}</SheetTitle>
-            <SheetDescription>Columns and indexes from the public schema.</SheetDescription>
+            <SheetTitle>{tablePreview?.name ?? "Table data"}</SheetTitle>
+            <SheetDescription>Read-only preview of recent rows and public schema metadata.</SheetDescription>
           </SheetHeader>
-          {tableDetail ? (
-            <div className="mt-6 flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-medium">Columns</h3>
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Nullable</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {tableDetail.columns.map((column) => (
-                        <TableRow key={column.column_name}>
-                          <TableCell className="font-mono text-xs">{column.column_name}</TableCell>
-                          <TableCell>{column.data_type}</TableCell>
-                          <TableCell>{column.is_nullable}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-medium">Indexes</h3>
-                {tableDetail.indexes.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {tableDetail.indexes.map((index) => (
-                      <div className="rounded-lg border bg-muted/30 p-3" key={index.indexname}>
-                        <div className="font-mono text-xs font-medium">{index.indexname}</div>
-                        <div className="mt-2 break-words font-mono text-xs text-muted-foreground">{index.indexdef}</div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No indexes returned.</div>
-                )}
-              </div>
-            </div>
-          ) : null}
+          {tablePreview ? <TablePreviewPanel onOpenDetail={setDetail} preview={tablePreview} /> : null}
         </SheetContent>
       </Sheet>
+
+      <MarkdownDetailDialog detail={detail} onOpenChange={(open) => !open && setDetail(null)} />
     </>
   );
 }
@@ -213,81 +331,117 @@ function LoadingRows({ columns }: { columns: number }) {
   );
 }
 
-function NotesTable({ isLoading, notes }: { isLoading: boolean; notes: Note[] }) {
+function NotesTable({
+  isLoading,
+  notes,
+  onOpenDetail
+}: {
+  isLoading: boolean;
+  notes: Note[];
+  onOpenDetail: (note: Note) => void;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border">
-      <Table>
-        <TableHeader className="bg-muted">
-          <TableRow>
-            <TableHead className="w-20">ID</TableHead>
-            <TableHead>Content</TableHead>
-            <TableHead>Tags</TableHead>
-            <TableHead className="w-40">Created</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? <LoadingRows columns={4} /> : null}
-          {!isLoading && notes.length === 0 ? <EmptyRow columns={4} label="No notes match the current filter." /> : null}
-          {!isLoading
-            ? notes.map((note) => (
-                <TableRow key={note.id}>
-                  <TableCell className="font-mono text-xs">#{note.id}</TableCell>
-                  <TableCell className="max-w-[520px] truncate">{note.content}</TableCell>
-                  <TableCell>
-                    <TagList tags={note.tags} />
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(note.created_at)}</TableCell>
-                </TableRow>
-              ))
-            : null}
-        </TableBody>
-      </Table>
+      <div className="overflow-x-auto">
+        <Table className="min-w-[960px]">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead className="w-20">ID</TableHead>
+              <TableHead>Content</TableHead>
+              <TableHead className="w-52">Source</TableHead>
+              <TableHead className="w-72">Tags</TableHead>
+              <TableHead className="w-40">Created</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? <LoadingRows columns={5} /> : null}
+            {!isLoading && notes.length === 0 ? <EmptyRow columns={5} label="No notes match the current filter." /> : null}
+            {!isLoading
+              ? notes.map((note) => (
+                  <TableRow key={note.id}>
+                    <TableCell className="font-mono text-xs">#{note.id}</TableCell>
+                    <TableCell>
+                      <DetailButton
+                        description={`Created ${formatDate(note.created_at)}`}
+                        maxWidthClassName="max-w-[640px]"
+                        onOpenDetail={() => onOpenDetail(note)}
+                        title={`Note #${note.id}`}
+                        value={note.content}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <SourceLink source={note.source} />
+                    </TableCell>
+                    <TableCell>
+                      <TagList tags={note.tags} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(note.created_at)}</TableCell>
+                  </TableRow>
+                ))
+              : null}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
 
-function NewsTable({ isLoading, news }: { isLoading: boolean; news: AiNewsItem[] }) {
+function NewsTable({
+  isLoading,
+  news,
+  onOpenDetail
+}: {
+  isLoading: boolean;
+  news: AiNewsItem[];
+  onOpenDetail: (item: AiNewsItem) => void;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border">
-      <Table>
-        <TableHeader className="bg-muted">
-          <TableRow>
-            <TableHead>Title</TableHead>
-            <TableHead className="w-32">Priority</TableHead>
-            <TableHead className="w-40">Source</TableHead>
-            <TableHead className="w-36">Updated</TableHead>
-            <TableHead className="w-16" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? <LoadingRows columns={5} /> : null}
-          {!isLoading && news.length === 0 ? <EmptyRow columns={5} label="No AI news rows match the current filter." /> : null}
-          {!isLoading
-            ? news.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="flex max-w-[560px] flex-col gap-1">
-                      <span className="truncate font-medium">{item.title}</span>
-                      <span className="line-clamp-2 text-xs text-muted-foreground">{item.summary}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{item.priority}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{item.source_name}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDate(item.updated_at)}</TableCell>
-                  <TableCell>
-                    <Button asChild aria-label={`Open source for ${item.title}`} size="icon-sm" variant="ghost">
-                      <a href={item.source_url} rel="noreferrer" target="_blank">
-                        <ExternalLinkIcon />
-                      </a>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            : null}
-        </TableBody>
-      </Table>
+      <div className="overflow-x-auto">
+        <Table className="min-w-[980px]">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead className="w-32">Priority</TableHead>
+              <TableHead className="w-40">Source</TableHead>
+              <TableHead className="w-36">Updated</TableHead>
+              <TableHead className="w-16" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? <LoadingRows columns={5} /> : null}
+            {!isLoading && news.length === 0 ? <EmptyRow columns={5} label="No AI news rows match the current filter." /> : null}
+            {!isLoading
+              ? news.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <button
+                        className="flex max-w-[640px] flex-col gap-1 text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => onOpenDetail(item)}
+                        type="button"
+                      >
+                        <span className="truncate font-medium">{item.title}</span>
+                        <span className="line-clamp-2 text-xs text-muted-foreground">{item.summary}</span>
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{item.priority}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{item.source_name}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDate(item.updated_at)}</TableCell>
+                    <TableCell>
+                      <Button asChild aria-label={`Open source for ${item.title}`} size="icon-sm" variant="ghost">
+                        <a href={item.source_url} rel="noreferrer" target="_blank">
+                          <ExternalLinkIcon />
+                        </a>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : null}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
@@ -295,12 +449,12 @@ function NewsTable({ isLoading, news }: { isLoading: boolean; news: AiNewsItem[]
 function TablesTable({
   isLoading,
   loadingTable,
-  onInspectTable,
+  onOpenTable,
   tables
 }: {
   isLoading: boolean;
   loadingTable: string;
-  onInspectTable: (tableName: string) => void;
+  onOpenTable: (tableName: string) => void;
   tables: TableSummary[];
 }) {
   const sortedTables = useMemo(() => [...tables].sort((left, right) => left.table_name.localeCompare(right.table_name)), [tables]);
@@ -320,7 +474,7 @@ function TablesTable({
           {!isLoading && sortedTables.length === 0 ? <EmptyRow columns={3} label="No public tables returned." /> : null}
           {!isLoading
             ? sortedTables.map((table) => (
-                <TableRow key={table.table_name}>
+                <TableRow className="cursor-pointer" key={table.table_name} onClick={() => onOpenTable(table.table_name)}>
                   <TableCell>
                     <div className="flex items-center gap-2 font-medium">
                       <Table2Icon />
@@ -329,9 +483,17 @@ function TablesTable({
                   </TableCell>
                   <TableCell className="font-mono text-xs">{table.estimated_rows}</TableCell>
                   <TableCell>
-                    <Button disabled={loadingTable === table.table_name} onClick={() => onInspectTable(table.table_name)} size="sm" variant="outline">
+                    <Button
+                      disabled={loadingTable === table.table_name}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onOpenTable(table.table_name);
+                      }}
+                      size="sm"
+                      variant="outline"
+                    >
                       {loadingTable === table.table_name ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
-                      Inspect
+                      Open
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -340,6 +502,243 @@ function TablesTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function TablePreviewPanel({
+  onOpenDetail,
+  preview
+}: {
+  onOpenDetail: (detail: MarkdownDetail) => void;
+  preview: TablePreview;
+}) {
+  return (
+    <Tabs className="min-h-0 flex-1 px-4 pb-6" defaultValue="rows">
+      <TabsList>
+        <TabsTrigger value="rows">Rows</TabsTrigger>
+        <TabsTrigger value="schema">Schema</TabsTrigger>
+      </TabsList>
+      <TabsContent className="mt-4 min-h-0" value="rows">
+        <TableRowsPreview onOpenDetail={onOpenDetail} preview={preview} />
+      </TabsContent>
+      <TabsContent className="mt-4" value="schema">
+        <TableSchema detail={preview.detail} />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+function TableRowsPreview({
+  onOpenDetail,
+  preview
+}: {
+  onOpenDetail: (detail: MarkdownDetail) => void;
+  preview: TablePreview;
+}) {
+  if (preview.data.rows.length === 0) {
+    return <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">No rows returned for this table.</div>;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <div className="table-rows-scroll max-h-[calc(100vh-15rem)] overflow-auto">
+        <table className="w-max min-w-full caption-bottom text-sm">
+          <TableHeader className="sticky top-0 z-10 bg-muted">
+            <TableRow>
+              <TableHead className="sticky left-0 w-32 bg-muted">Row</TableHead>
+              {preview.data.columns.map((column) => (
+                <TableHead className="whitespace-nowrap" key={column}>
+                  {column}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {preview.data.rows.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                <TableCell className="sticky left-0 bg-popover align-top">
+                  <Button
+                    onClick={() =>
+                      onOpenDetail({
+                        title: `${preview.name} row ${rowIndex + 1}`,
+                        description: `Complete row from ${preview.name}`,
+                        body: rowToMarkdown(row, preview.data.columns),
+                        source: sourceFromRow(row, preview.data.columns),
+                        metadata: [{ label: "Columns", value: String(preview.data.columns.length) }]
+                      })
+                    }
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Table2Icon data-icon="inline-start" />
+                    Open row
+                  </Button>
+                </TableCell>
+                {preview.data.columns.map((column) => (
+                  <TableCell className="max-w-[360px] align-top" key={column}>
+                    <DetailButton
+                      description={`${preview.name}, row ${rowIndex + 1}, column ${column}`}
+                      maxWidthClassName="max-w-[340px]"
+                      onOpenDetail={() =>
+                        onOpenDetail({
+                          title: `${preview.name}.${column}`,
+                          description: `Row ${rowIndex + 1}`,
+                          body: valueToMarkdown(row[column]),
+                          source: sourceFromValue(row[column])
+                        })
+                      }
+                      title={`${preview.name}.${column}`}
+                      value={row[column]}
+                    />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TableSchema({ detail }: { detail: TableDetail }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-medium">Columns</h3>
+        <div className="overflow-hidden rounded-lg border">
+          <Table>
+            <TableHeader className="bg-muted">
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Nullable</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {detail.columns.map((column) => (
+                <TableRow key={column.column_name}>
+                  <TableCell className="font-mono text-xs">{column.column_name}</TableCell>
+                  <TableCell>{column.data_type}</TableCell>
+                  <TableCell>{column.is_nullable}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-sm font-medium">Indexes</h3>
+        {detail.indexes.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {detail.indexes.map((index) => (
+              <div className="rounded-lg border bg-muted/30 p-3" key={index.indexname}>
+                <div className="font-mono text-xs font-medium">{index.indexname}</div>
+                <div className="mt-2 break-words font-mono text-xs text-muted-foreground">{index.indexdef}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No indexes returned.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DetailButton({
+  description,
+  maxWidthClassName,
+  onOpenDetail,
+  title,
+  value
+}: {
+  description: string;
+  maxWidthClassName: string;
+  onOpenDetail: () => void;
+  title: string;
+  value: unknown;
+}) {
+  const preview = valueToPreview(value);
+  if (!preview) return <span className="text-muted-foreground">null</span>;
+
+  return (
+    <button
+      aria-label={`Open ${title}: ${description}`}
+      className={`block truncate text-left text-sm text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${maxWidthClassName}`}
+      onClick={onOpenDetail}
+      title={preview}
+      type="button"
+    >
+      {preview}
+    </button>
+  );
+}
+
+function SourceLink({ source }: { source?: string | null }) {
+  if (!source) return <span className="text-muted-foreground">none</span>;
+
+  if (!isHttpUrl(source)) {
+    return <span className="block max-w-[200px] truncate text-muted-foreground">{source}</span>;
+  }
+
+  return (
+    <Button asChild size="sm" variant="ghost">
+      <a className="max-w-[200px] justify-start" href={source} rel="noreferrer" target="_blank">
+        <span className="truncate">Source</span>
+        <ExternalLinkIcon data-icon="inline-end" />
+      </a>
+    </Button>
+  );
+}
+
+function MarkdownDetailDialog({
+  detail,
+  onOpenChange
+}: {
+  detail: MarkdownDetail | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog onOpenChange={onOpenChange} open={detail !== null}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{detail?.title ?? "Detail"}</DialogTitle>
+          <DialogDescription>{detail?.description ?? "Read-only detail view"}</DialogDescription>
+        </DialogHeader>
+        {detail?.metadata?.length ? (
+          <div className="flex flex-wrap gap-2">
+            {detail.metadata.map((item) => (
+              <Badge key={`${item.label}-${item.value}`} variant="secondary">
+                {item.label}: {item.value}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+        {detail?.source && isHttpUrl(detail.source) ? (
+          <Button asChild className="w-fit" size="sm" variant="outline">
+            <a href={detail.source} rel="noreferrer" target="_blank">
+              Open source
+              <ExternalLinkIcon data-icon="inline-end" />
+            </a>
+          </Button>
+        ) : null}
+        <div className="markdown-body rounded-lg border bg-muted/20 p-4">
+          <ReactMarkdown
+            components={{
+              a: ({ children, href, ...props }) => (
+                <a href={href} rel="noreferrer" target="_blank" {...props}>
+                  {children}
+                </a>
+              )
+            }}
+            remarkPlugins={[remarkGfm]}
+          >
+            {detail?.body ?? ""}
+          </ReactMarkdown>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -366,4 +765,55 @@ function EmptyRow({ columns, label }: { columns: number; label: string }) {
       </TableCell>
     </TableRow>
   );
+}
+
+function valueToPreview(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return JSON.stringify(value);
+}
+
+function valueToMarkdown(value: unknown): string {
+  if (value === null || value === undefined) return "_null_";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  return `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``;
+}
+
+function rowToMarkdown(row: Record<string, unknown>, columns: string[]): string {
+  return columns
+    .map((column) => {
+      const value = row[column];
+      return `## ${column}\n\n${valueToMarkdown(value)}`;
+    })
+    .join("\n\n");
+}
+
+function sourceFromValue(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return isHttpUrl(value) ? value : null;
+}
+
+function sourceFromRow(row: Record<string, unknown>, columns: string[]): string | null {
+  const preferredColumns = ["source_url", "source", "url", "link"];
+  for (const column of preferredColumns) {
+    const value = row[column];
+    const source = sourceFromValue(value);
+    if (source) return source;
+  }
+  for (const column of columns) {
+    const source = sourceFromValue(row[column]);
+    if (source) return source;
+  }
+  return null;
+}
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
