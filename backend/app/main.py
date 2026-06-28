@@ -31,7 +31,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -77,6 +77,21 @@ def ensure_public_table(table_name: str) -> None:
     )
     if not exists:
         raise HTTPException(status_code=404, detail="table not found")
+
+
+def ensure_id_column(table_name: str) -> None:
+    column = one(
+        """
+        select column_name
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = %s
+          and column_name = 'id';
+        """,
+        (table_name,),
+    )
+    if not column:
+        raise HTTPException(status_code=400, detail="table does not expose an id column")
 
 
 @app.get("/api/health")
@@ -245,6 +260,24 @@ def table_rows(
         columns = [column.name for column in cur.description or []]
         result = [dict(row) for row in cur.fetchall()]
     return {"columns": columns, "rows": result}
+
+
+@app.delete("/api/tables/{table_name}/rows/{row_id}")
+def delete_table_row(table_name: str, row_id: int) -> dict[str, Any]:
+    ensure_public_table(table_name)
+    ensure_id_column(table_name)
+
+    with db() as cur:
+        cur.execute(
+            pg_sql.SQL("delete from {} where id = %s returning id").format(pg_sql.Identifier(table_name)),
+            (row_id,),
+        )
+        deleted = cur.fetchone()
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="row not found")
+
+    return {"deleted": True, "table": table_name, "id": deleted["id"]}
 
 
 @app.post("/api/query/read-only")

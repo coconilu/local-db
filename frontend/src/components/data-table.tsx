@@ -18,6 +18,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
@@ -62,6 +63,13 @@ type TablePreview = {
   data: QueryResult;
 };
 
+type DeleteTarget = {
+  tableName: string;
+  rowId: number;
+  label: string;
+  description: string;
+};
+
 function toDataTab(view: DashboardView): DataTab {
   if (view === "ai-news" || view === "tables") return view;
   return "notes";
@@ -76,16 +84,21 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function showReadOnlyDeleteToast(label: string) {
-  toast("Delete is disabled in read-only viewer", {
-    description: `${label} was not deleted.`
-  });
+function deleteTargetKey(target: DeleteTarget): string {
+  return `${target.tableName}:${target.rowId}`;
+}
+
+function rowIdToNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isInteger(value)) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return null;
 }
 
 export function DataTable({
   isLoading,
   news,
   notes,
+  onDataChanged,
   onViewChange,
   tables,
   view
@@ -93,11 +106,14 @@ export function DataTable({
   isLoading: boolean;
   news: AiNewsItem[];
   notes: Note[];
+  onDataChanged: () => Promise<void> | void;
   onViewChange: (view: DashboardView) => void;
   tables: TableSummary[];
   view: DashboardView;
 }) {
   const [detail, setDetail] = useState<MarkdownDetail | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deletingKey, setDeletingKey] = useState("");
   const [tablePreview, setTablePreview] = useState<TablePreview | null>(null);
   const [loadingTable, setLoadingTable] = useState("");
   const [isResizingTableSheet, setIsResizingTableSheet] = useState(false);
@@ -113,11 +129,15 @@ export function DataTable({
     [tableSheetWidth]
   );
 
+  async function loadTablePreview(tableName: string): Promise<TablePreview> {
+    const [detailResponse, rowsResponse] = await Promise.all([api.table(tableName), api.tableRows(tableName)]);
+    return { name: tableName, detail: detailResponse, data: rowsResponse };
+  }
+
   async function openTable(tableName: string) {
     setLoadingTable(tableName);
     try {
-      const [detailResponse, rowsResponse] = await Promise.all([api.table(tableName), api.tableRows(tableName)]);
-      setTablePreview({ name: tableName, detail: detailResponse, data: rowsResponse });
+      setTablePreview(await loadTablePreview(tableName));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : `Failed to open ${tableName}`);
     } finally {
@@ -160,6 +180,38 @@ export function DataTable({
         { label: "Verification", value: item.verification_status }
       ]
     });
+  }
+
+  async function refreshOpenTable(tableName: string) {
+    const nextPreview = await loadTablePreview(tableName);
+    setTablePreview((current) => (current?.name === tableName ? nextPreview : current));
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    const target = deleteTarget;
+    setDeletingKey(deleteTargetKey(target));
+    try {
+      await api.deleteRow(target.tableName, target.rowId);
+      toast.success("Row deleted", {
+        description: `${target.label} was deleted.`
+      });
+      setDeleteTarget(null);
+      setDetail(null);
+
+      const refreshes = [Promise.resolve(onDataChanged())];
+      if (tablePreview?.name === target.tableName) {
+        refreshes.push(refreshOpenTable(target.tableName));
+      }
+      await Promise.all(refreshes);
+    } catch (err) {
+      toast.error("Delete failed", {
+        description: err instanceof Error ? err.message : `Could not delete ${target.label}.`
+      });
+    } finally {
+      setDeletingKey("");
+    }
   }
 
   const resizeTableSheet = useCallback((clientX: number) => {
@@ -245,19 +297,29 @@ export function DataTable({
             </TabsTrigger>
           </TabsList>
           <Badge className="hidden md:inline-flex" variant="outline">
-            Read-only viewer
+            Delete requires confirmation
           </Badge>
         </div>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="notes">
           <DataCard description="Recent rows from the notes table" title="Notes">
-            <NotesTable isLoading={isLoading} notes={notes} onOpenDetail={openNote} />
+            <NotesTable
+              isLoading={isLoading}
+              notes={notes}
+              onOpenDetail={openNote}
+              onRequestDelete={setDeleteTarget}
+            />
           </DataCard>
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-news">
           <DataCard description="AI signal rows with source and verification context" title="AI News">
-            <NewsTable isLoading={isLoading} news={news} onOpenDetail={openNewsItem} />
+            <NewsTable
+              isLoading={isLoading}
+              news={news}
+              onOpenDetail={openNewsItem}
+              onRequestDelete={setDeleteTarget}
+            />
           </DataCard>
         </TabsContent>
 
@@ -290,12 +352,20 @@ export function DataTable({
           />
           <SheetHeader>
             <SheetTitle>{tablePreview?.name ?? "Table data"}</SheetTitle>
-            <SheetDescription>Read-only preview of recent rows and public schema metadata.</SheetDescription>
+            <SheetDescription>Preview recent rows and public schema metadata. Deletes require confirmation.</SheetDescription>
           </SheetHeader>
-          {tablePreview ? <TablePreviewPanel onOpenDetail={setDetail} preview={tablePreview} /> : null}
+          {tablePreview ? (
+            <TablePreviewPanel onOpenDetail={setDetail} onRequestDelete={setDeleteTarget} preview={tablePreview} />
+          ) : null}
         </SheetContent>
       </Sheet>
 
+      <DeleteConfirmDialog
+        isDeleting={Boolean(deletingKey)}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={() => void confirmDelete()}
+        target={deleteTarget}
+      />
       <MarkdownDetailDialog detail={detail} onOpenChange={(open) => !open && setDetail(null)} />
     </>
   );
@@ -340,11 +410,13 @@ function LoadingRows({ columns }: { columns: number }) {
 function NotesTable({
   isLoading,
   notes,
-  onOpenDetail
+  onOpenDetail,
+  onRequestDelete
 }: {
   isLoading: boolean;
   notes: Note[];
   onOpenDetail: (note: Note) => void;
+  onRequestDelete: (target: DeleteTarget) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border">
@@ -370,7 +442,14 @@ function NotesTable({
                       <ActionButtons
                         deleteLabel={`Delete Note #${note.id}`}
                         detailLabel={`Open Note #${note.id}`}
-                        onDelete={() => showReadOnlyDeleteToast(`Note #${note.id}`)}
+                        onDelete={() =>
+                          onRequestDelete({
+                            tableName: "notes",
+                            rowId: note.id,
+                            label: `Note #${note.id}`,
+                            description: valueToPreview(note.content) || "No note content"
+                          })
+                        }
                         onOpenDetail={() => onOpenDetail(note)}
                       />
                     </TableCell>
@@ -414,11 +493,13 @@ function NotesTable({
 function NewsTable({
   isLoading,
   news,
-  onOpenDetail
+  onOpenDetail,
+  onRequestDelete
 }: {
   isLoading: boolean;
   news: AiNewsItem[];
   onOpenDetail: (item: AiNewsItem) => void;
+  onRequestDelete: (target: DeleteTarget) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-lg border">
@@ -445,7 +526,14 @@ function NewsTable({
                       <ActionButtons
                         deleteLabel={`Delete AI news item #${item.id}`}
                         detailLabel={`Open AI news item #${item.id}`}
-                        onDelete={() => showReadOnlyDeleteToast(`AI news item #${item.id}`)}
+                        onDelete={() =>
+                          onRequestDelete({
+                            tableName: "ai_news_items",
+                            rowId: item.id,
+                            label: `AI news item #${item.id}`,
+                            description: item.title
+                          })
+                        }
                         onOpenDetail={() => onOpenDetail(item)}
                       />
                     </TableCell>
@@ -553,9 +641,11 @@ function TablesTable({
 
 function TablePreviewPanel({
   onOpenDetail,
+  onRequestDelete,
   preview
 }: {
   onOpenDetail: (detail: MarkdownDetail) => void;
+  onRequestDelete: (target: DeleteTarget) => void;
   preview: TablePreview;
 }) {
   return (
@@ -565,7 +655,7 @@ function TablePreviewPanel({
         <TabsTrigger value="schema">Schema</TabsTrigger>
       </TabsList>
       <TabsContent className="mt-4 min-h-0" value="rows">
-        <TableRowsPreview onOpenDetail={onOpenDetail} preview={preview} />
+        <TableRowsPreview onOpenDetail={onOpenDetail} onRequestDelete={onRequestDelete} preview={preview} />
       </TabsContent>
       <TabsContent className="mt-4" value="schema">
         <TableSchema detail={preview.detail} />
@@ -576,9 +666,11 @@ function TablePreviewPanel({
 
 function TableRowsPreview({
   onOpenDetail,
+  onRequestDelete,
   preview
 }: {
   onOpenDetail: (detail: MarkdownDetail) => void;
+  onRequestDelete: (target: DeleteTarget) => void;
   preview: TablePreview;
 }) {
   if (preview.data.rows.length === 0) {
@@ -600,44 +692,62 @@ function TableRowsPreview({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {preview.data.rows.map((row, rowIndex) => (
-              <TableRow key={rowIndex}>
-                <TableCell className="sticky left-0 bg-popover align-top">
-                  <ActionButtons
-                    deleteLabel={`Delete ${preview.name} row ${rowIndex + 1}`}
-                    detailLabel={`Open ${preview.name} row ${rowIndex + 1}`}
-                    onDelete={() => showReadOnlyDeleteToast(`${preview.name} row ${rowIndex + 1}`)}
-                    onOpenDetail={() =>
-                      onOpenDetail({
-                        title: `${preview.name} row ${rowIndex + 1}`,
-                        description: `Complete row from ${preview.name}`,
-                        body: rowToMarkdown(row, preview.data.columns),
-                        source: sourceFromRow(row, preview.data.columns),
-                        metadata: [{ label: "Columns", value: String(preview.data.columns.length) }]
-                      })
-                    }
-                  />
-                </TableCell>
-                {preview.data.columns.map((column) => (
-                  <TableCell className="max-w-[360px] align-top" key={column}>
-                    <DetailButton
-                      description={`${preview.name}, row ${rowIndex + 1}, column ${column}`}
-                      maxWidthClassName="max-w-[340px]"
+            {preview.data.rows.map((row, rowIndex) => {
+              const rowId = rowIdToNumber(row.id);
+              return (
+                <TableRow key={rowIndex}>
+                  <TableCell className="sticky left-0 bg-popover align-top">
+                    <ActionButtons
+                      deleteDisabled={rowId === null}
+                      deleteLabel={
+                        rowId === null
+                          ? `Cannot delete ${preview.name} row ${rowIndex + 1}: no numeric id`
+                          : `Delete ${preview.name} #${rowId}`
+                      }
+                      detailLabel={`Open ${preview.name} row ${rowIndex + 1}`}
+                      onDelete={
+                        rowId === null
+                          ? undefined
+                          : () =>
+                              onRequestDelete({
+                                tableName: preview.name,
+                                rowId,
+                                label: `${preview.name} #${rowId}`,
+                                description: `Row ${rowIndex + 1} from ${preview.name}`
+                              })
+                      }
                       onOpenDetail={() =>
                         onOpenDetail({
-                          title: `${preview.name}.${column}`,
-                          description: `Row ${rowIndex + 1}`,
-                          body: valueToMarkdown(row[column]),
-                          source: sourceFromValue(row[column])
+                          title: `${preview.name} row ${rowIndex + 1}`,
+                          description: `Complete row from ${preview.name}`,
+                          body: rowToMarkdown(row, preview.data.columns),
+                          source: sourceFromRow(row, preview.data.columns),
+                          metadata: [{ label: "Columns", value: String(preview.data.columns.length) }]
                         })
                       }
-                      title={`${preview.name}.${column}`}
-                      value={row[column]}
                     />
                   </TableCell>
-                ))}
-              </TableRow>
-            ))}
+                  {preview.data.columns.map((column) => (
+                    <TableCell className="max-w-[360px] align-top" key={column}>
+                      <DetailButton
+                        description={`${preview.name}, row ${rowIndex + 1}, column ${column}`}
+                        maxWidthClassName="max-w-[340px]"
+                        onOpenDetail={() =>
+                          onOpenDetail({
+                            title: `${preview.name}.${column}`,
+                            description: `Row ${rowIndex + 1}`,
+                            body: valueToMarkdown(row[column]),
+                            source: sourceFromValue(row[column])
+                          })
+                        }
+                        title={`${preview.name}.${column}`}
+                        value={row[column]}
+                      />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </table>
       </div>
@@ -691,14 +801,16 @@ function TableSchema({ detail }: { detail: TableDetail }) {
 }
 
 function ActionButtons({
+  deleteDisabled = false,
   deleteLabel,
   detailLabel,
   onDelete,
   onOpenDetail
 }: {
+  deleteDisabled?: boolean;
   deleteLabel: string;
   detailLabel: string;
-  onDelete: () => void;
+  onDelete?: () => void;
   onOpenDetail: () => void;
 }) {
   return (
@@ -718,8 +830,10 @@ function ActionButtons({
       </Button>
       <Button
         aria-label={deleteLabel}
+        disabled={deleteDisabled || !onDelete}
         onClick={(event) => {
           event.stopPropagation();
+          if (!onDelete) return;
           onDelete();
         }}
         size="icon-xs"
@@ -730,6 +844,49 @@ function ActionButtons({
         <Trash2Icon />
       </Button>
     </div>
+  );
+}
+
+function DeleteConfirmDialog({
+  isDeleting,
+  onCancel,
+  onConfirm,
+  target
+}: {
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  target: DeleteTarget | null;
+}) {
+  return (
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open && !isDeleting) onCancel();
+      }}
+      open={target !== null}
+    >
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete row?</DialogTitle>
+          <DialogDescription>
+            This will permanently delete {target?.label ?? "this row"} from {target?.tableName ?? "the table"}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
+          <div className="font-medium text-foreground">ID: {target?.rowId ?? "-"}</div>
+          <div className="mt-1 line-clamp-3">{target?.description ?? "No row preview available."}</div>
+        </div>
+        <DialogFooter>
+          <Button disabled={isDeleting} onClick={onCancel} type="button" variant="outline">
+            Cancel
+          </Button>
+          <Button disabled={isDeleting} onClick={onConfirm} type="button" variant="destructive">
+            {isDeleting ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

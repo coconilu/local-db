@@ -43,8 +43,8 @@ export function SectionCards({
     },
     {
       label: "Mode",
-      value: "Read-only",
-      detail: isLoading ? "Syncing API state" : "Dashboard cannot write rows",
+      value: "Guarded",
+      detail: isLoading ? "Syncing API state" : "Queries are read-only; deletes need confirmation",
       icon: ShieldCheckIcon,
       badge: status
     }

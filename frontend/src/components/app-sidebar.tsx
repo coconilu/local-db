@@ -106,7 +106,7 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton>
                   <ActivityIcon />
-                  <span>Read-only API</span>
+                  <span>Guarded API</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -115,7 +115,7 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <div className="rounded-lg border bg-background/60 p-3 text-xs text-muted-foreground">
-          Data writes stay in CLI/agent workflows. The dashboard reads through `/api`.
+          Queries stay read-only. Row deletes require an explicit confirmation.
         </div>
       </SidebarFooter>
     </Sidebar>

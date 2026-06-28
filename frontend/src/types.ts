@@ -73,4 +73,10 @@ export type QueryResult = {
 
 export type TableRowsResponse = QueryResult;
 
+export type DeleteRowResponse = {
+  deleted: boolean;
+  table: string;
+  id: number;
+};
+
 export type DashboardView = "overview" | "notes" | "ai-news" | "tables" | "query";

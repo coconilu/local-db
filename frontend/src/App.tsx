@@ -125,6 +125,7 @@ export function App() {
                       isLoading={loading}
                       news={news}
                       notes={notes}
+                      onDataChanged={() => fetchDashboard(query)}
                       onViewChange={setView}
                       tables={tables}
                       view={view}
