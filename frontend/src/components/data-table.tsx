@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, Loader2Icon, Table2Icon } from "lucide-react";
+import { ExternalLinkIcon, EyeIcon, Loader2Icon, Table2Icon, Trash2Icon } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -74,6 +74,12 @@ function toDashboardView(value: string): DashboardView {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function showReadOnlyDeleteToast(label: string) {
+  toast("Delete is disabled in read-only viewer", {
+    description: `${label} was not deleted.`
+  });
 }
 
 export function DataTable({
@@ -343,9 +349,10 @@ function NotesTable({
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="overflow-x-auto">
-        <Table className="min-w-[960px]">
+        <Table className="min-w-[1040px]">
           <TableHeader className="bg-muted">
             <TableRow>
+              <TableHead className="sticky left-0 z-20 w-24 bg-muted">Action</TableHead>
               <TableHead className="w-20">ID</TableHead>
               <TableHead>Content</TableHead>
               <TableHead className="w-52">Source</TableHead>
@@ -354,12 +361,30 @@ function NotesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? <LoadingRows columns={5} /> : null}
-            {!isLoading && notes.length === 0 ? <EmptyRow columns={5} label="No notes match the current filter." /> : null}
+            {isLoading ? <LoadingRows columns={6} /> : null}
+            {!isLoading && notes.length === 0 ? <EmptyRow columns={6} label="No notes match the current filter." /> : null}
             {!isLoading
               ? notes.map((note) => (
                   <TableRow key={note.id}>
-                    <TableCell className="font-mono text-xs">#{note.id}</TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-card">
+                      <ActionButtons
+                        deleteLabel={`Delete Note #${note.id}`}
+                        detailLabel={`Open Note #${note.id}`}
+                        onDelete={() => showReadOnlyDeleteToast(`Note #${note.id}`)}
+                        onOpenDetail={() => onOpenDetail(note)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        aria-label={`Open Note #${note.id}`}
+                        className="font-mono"
+                        onClick={() => onOpenDetail(note)}
+                        size="xs"
+                        variant="ghost"
+                      >
+                        #{note.id}
+                      </Button>
+                    </TableCell>
                     <TableCell>
                       <DetailButton
                         description={`Created ${formatDate(note.created_at)}`}
@@ -398,9 +423,11 @@ function NewsTable({
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="overflow-x-auto">
-        <Table className="min-w-[980px]">
+        <Table className="min-w-[1120px]">
           <TableHeader className="bg-muted">
             <TableRow>
+              <TableHead className="sticky left-0 z-20 w-24 bg-muted">Action</TableHead>
+              <TableHead className="w-20">ID</TableHead>
               <TableHead>Title</TableHead>
               <TableHead className="w-32">Priority</TableHead>
               <TableHead className="w-40">Source</TableHead>
@@ -409,11 +436,30 @@ function NewsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? <LoadingRows columns={5} /> : null}
-            {!isLoading && news.length === 0 ? <EmptyRow columns={5} label="No AI news rows match the current filter." /> : null}
+            {isLoading ? <LoadingRows columns={7} /> : null}
+            {!isLoading && news.length === 0 ? <EmptyRow columns={7} label="No AI news rows match the current filter." /> : null}
             {!isLoading
               ? news.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell className="sticky left-0 z-10 bg-card">
+                      <ActionButtons
+                        deleteLabel={`Delete AI news item #${item.id}`}
+                        detailLabel={`Open AI news item #${item.id}`}
+                        onDelete={() => showReadOnlyDeleteToast(`AI news item #${item.id}`)}
+                        onOpenDetail={() => onOpenDetail(item)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        aria-label={`Open AI news item #${item.id}`}
+                        className="font-mono"
+                        onClick={() => onOpenDetail(item)}
+                        size="xs"
+                        variant="ghost"
+                      >
+                        #{item.id}
+                      </Button>
+                    </TableCell>
                     <TableCell>
                       <button
                         className="flex max-w-[640px] flex-col gap-1 text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -545,7 +591,7 @@ function TableRowsPreview({
         <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader className="sticky top-0 z-10 bg-muted">
             <TableRow>
-              <TableHead className="sticky left-0 w-32 bg-muted">Row</TableHead>
+              <TableHead className="sticky left-0 w-24 bg-muted">Action</TableHead>
               {preview.data.columns.map((column) => (
                 <TableHead className="whitespace-nowrap" key={column}>
                   {column}
@@ -557,8 +603,11 @@ function TableRowsPreview({
             {preview.data.rows.map((row, rowIndex) => (
               <TableRow key={rowIndex}>
                 <TableCell className="sticky left-0 bg-popover align-top">
-                  <Button
-                    onClick={() =>
+                  <ActionButtons
+                    deleteLabel={`Delete ${preview.name} row ${rowIndex + 1}`}
+                    detailLabel={`Open ${preview.name} row ${rowIndex + 1}`}
+                    onDelete={() => showReadOnlyDeleteToast(`${preview.name} row ${rowIndex + 1}`)}
+                    onOpenDetail={() =>
                       onOpenDetail({
                         title: `${preview.name} row ${rowIndex + 1}`,
                         description: `Complete row from ${preview.name}`,
@@ -567,12 +616,7 @@ function TableRowsPreview({
                         metadata: [{ label: "Columns", value: String(preview.data.columns.length) }]
                       })
                     }
-                    size="sm"
-                    variant="outline"
-                  >
-                    <Table2Icon data-icon="inline-start" />
-                    Open row
-                  </Button>
+                  />
                 </TableCell>
                 {preview.data.columns.map((column) => (
                   <TableCell className="max-w-[360px] align-top" key={column}>
@@ -642,6 +686,49 @@ function TableSchema({ detail }: { detail: TableDetail }) {
           <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No indexes returned.</div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ActionButtons({
+  deleteLabel,
+  detailLabel,
+  onDelete,
+  onOpenDetail
+}: {
+  deleteLabel: string;
+  detailLabel: string;
+  onDelete: () => void;
+  onOpenDetail: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        aria-label={detailLabel}
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenDetail();
+        }}
+        size="icon-xs"
+        title={detailLabel}
+        type="button"
+        variant="ghost"
+      >
+        <EyeIcon />
+      </Button>
+      <Button
+        aria-label={deleteLabel}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete();
+        }}
+        size="icon-xs"
+        title={deleteLabel}
+        type="button"
+        variant="destructive"
+      >
+        <Trash2Icon />
+      </Button>
     </div>
   );
 }
