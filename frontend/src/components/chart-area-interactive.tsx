@@ -5,9 +5,10 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { AiNewsItem, Note, TableSummary } from "@/types";
+import type { AiCodingOssItem, AiNewsItem, Note, TableSummary } from "@/types";
 
 type ActivityPoint = {
+  coding: number;
   date: string;
   notes: number;
   news: number;
@@ -21,6 +22,10 @@ const chartConfig = {
   news: {
     label: "AI News",
     color: "var(--chart-3)"
+  },
+  coding: {
+    label: "AI Coding OSS",
+    color: "var(--chart-2)"
   }
 } satisfies ChartConfig;
 
@@ -31,13 +36,13 @@ function dayKey(value?: string | null) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildActivity(notes: Note[], news: AiNewsItem[]): ActivityPoint[] {
+function buildActivity(notes: Note[], news: AiNewsItem[], codingItems: AiCodingOssItem[]): ActivityPoint[] {
   const grouped = new Map<string, ActivityPoint>();
 
   for (const note of notes) {
     const key = dayKey(note.created_at);
     if (!key) continue;
-    const current = grouped.get(key) ?? { date: key, notes: 0, news: 0 };
+    const current = grouped.get(key) ?? { coding: 0, date: key, notes: 0, news: 0 };
     current.notes += 1;
     grouped.set(key, current);
   }
@@ -45,8 +50,16 @@ function buildActivity(notes: Note[], news: AiNewsItem[]): ActivityPoint[] {
   for (const item of news) {
     const key = dayKey(item.published_at ?? item.digest_run_at ?? item.created_at);
     if (!key) continue;
-    const current = grouped.get(key) ?? { date: key, notes: 0, news: 0 };
+    const current = grouped.get(key) ?? { coding: 0, date: key, notes: 0, news: 0 };
     current.news += 1;
+    grouped.set(key, current);
+  }
+
+  for (const item of codingItems) {
+    const key = dayKey(item.brief_date ?? item.digest_run_at ?? item.created_at);
+    if (!key) continue;
+    const current = grouped.get(key) ?? { coding: 0, date: key, notes: 0, news: 0 };
+    current.coding += 1;
     grouped.set(key, current);
   }
 
@@ -65,19 +78,21 @@ function filterActivity(data: ActivityPoint[], range: string) {
 }
 
 export function ChartAreaInteractive({
+  codingItems,
   news,
   notes,
   tables
 }: {
+  codingItems: AiCodingOssItem[];
   news: AiNewsItem[];
   notes: Note[];
   tables: TableSummary[];
 }) {
   const [timeRange, setTimeRange] = useState("30d");
-  const activity = useMemo(() => buildActivity(notes, news), [news, notes]);
+  const activity = useMemo(() => buildActivity(notes, news, codingItems), [codingItems, news, notes]);
   const filteredData = useMemo(() => filterActivity(activity, timeRange), [activity, timeRange]);
   const estimatedRows = tables.reduce((total, table) => total + Math.max(0, table.estimated_rows), 0);
-  const maxActivity = Math.max(0, ...filteredData.map((item) => item.notes + item.news));
+  const maxActivity = Math.max(0, ...filteredData.map((item) => item.notes + item.news + item.coding));
   const yMax = Math.max(1, Math.ceil(maxActivity * 1.15));
 
   return (
@@ -85,7 +100,7 @@ export function ChartAreaInteractive({
       <CardHeader>
         <CardTitle>Database activity</CardTitle>
         <CardDescription>
-          <span className="hidden @[540px]/card:block">Recent note and AI signal rows grouped by day</span>
+          <span className="hidden @[540px]/card:block">Recent note, AI news, and AI coding rows grouped by day</span>
           <span className="@[540px]/card:hidden">Recent row activity</span>
         </CardDescription>
         <CardAction>
@@ -129,6 +144,10 @@ export function ChartAreaInteractive({
                   <stop offset="5%" stopColor="var(--color-news)" stopOpacity={0.75} />
                   <stop offset="95%" stopColor="var(--color-news)" stopOpacity={0.08} />
                 </linearGradient>
+                <linearGradient id="fillCoding" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-coding)" stopOpacity={0.72} />
+                  <stop offset="95%" stopColor="var(--color-coding)" stopOpacity={0.08} />
+                </linearGradient>
               </defs>
               <CartesianGrid vertical={false} />
               <YAxis domain={[0, yMax]} hide />
@@ -160,18 +179,20 @@ export function ChartAreaInteractive({
                 }
                 cursor={false}
               />
+              <Area dataKey="coding" fill="url(#fillCoding)" stackId="a" stroke="var(--color-coding)" type="natural" />
               <Area dataKey="news" fill="url(#fillNews)" stackId="a" stroke="var(--color-news)" type="natural" />
               <Area dataKey="notes" fill="url(#fillNotes)" stackId="a" stroke="var(--color-notes)" type="natural" />
             </AreaChart>
           </ChartContainer>
         ) : (
           <div className="flex h-[260px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-            No dated rows yet. Insert notes or AI news items to populate activity.
+            No dated rows yet. Insert notes, AI news, or AI coding rows to populate activity.
           </div>
         )}
-        <div className="mt-4 grid gap-2 text-sm text-muted-foreground md:grid-cols-3">
+        <div className="mt-4 grid gap-2 text-sm text-muted-foreground md:grid-cols-4">
           <div>Loaded notes: {notes.length}</div>
           <div>Loaded AI signals: {news.length}</div>
+          <div>Loaded AI coding rows: {codingItems.length}</div>
           <div>Estimated rows across tables: {estimatedRows}</div>
         </div>
       </CardContent>

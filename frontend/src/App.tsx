@@ -12,15 +12,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/lib/api";
-import type { AiNewsItem, DashboardView, HealthResponse, Note, TableSummary } from "@/types";
+import type { AiCodingOssItem, AiNewsItem, DashboardView, HealthResponse, Note, TableSummary } from "@/types";
 
 type Counts = {
+  coding: number;
   notes: number;
   news: number;
   tables: number;
 };
 
 const initialCounts: Counts = {
+  coding: 0,
   notes: 0,
   news: 0,
   tables: 0
@@ -29,6 +31,7 @@ const initialCounts: Counts = {
 export function App() {
   const [view, setView] = useState<DashboardView>("overview");
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [codingItems, setCodingItems] = useState<AiCodingOssItem[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [news, setNews] = useState<AiNewsItem[]>([]);
   const [tables, setTables] = useState<TableSummary[]>([]);
@@ -41,14 +44,16 @@ export function App() {
     setError("");
 
     try {
-      const [healthResult, noteResult, newsResult, tableResult] = await Promise.all([
+      const [healthResult, noteResult, newsResult, codingResult, tableResult] = await Promise.all([
         api.health(),
         api.notes(search),
         api.aiNews(search),
+        api.aiCodingOss(search),
         api.tables()
       ]);
 
       setHealth(healthResult);
+      setCodingItems(codingResult.items);
       setNotes(noteResult.items);
       setNews(newsResult.items);
       setTables(tableResult.items);
@@ -67,11 +72,12 @@ export function App() {
     const healthCounts = new Map((health?.counts ?? []).map((item) => [item.name, item.count]));
 
     return {
+      coding: healthCounts.get("ai_coding_oss_top5_items") ?? codingItems.length,
       notes: healthCounts.get("notes") ?? notes.length,
       news: healthCounts.get("ai_news_items") ?? news.length,
       tables: healthCounts.get("tables") ?? tables.length
     };
-  }, [health, news.length, notes.length, tables.length]);
+  }, [codingItems.length, health, news.length, notes.length, tables.length]);
 
   const databaseName = health?.database.database ?? "localdb";
 
@@ -119,11 +125,12 @@ export function App() {
                 ) : (
                   <>
                     <div className="px-4 lg:px-6">
-                      <ChartAreaInteractive news={news} notes={notes} tables={tables} />
-                    </div>
-                    <DataTable
-                      isLoading={loading}
-                      news={news}
+                    <ChartAreaInteractive codingItems={codingItems} news={news} notes={notes} tables={tables} />
+                  </div>
+                  <DataTable
+                    codingItems={codingItems}
+                    isLoading={loading}
+                    news={news}
                       notes={notes}
                       onDataChanged={() => fetchDashboard(query)}
                       onViewChange={setView}

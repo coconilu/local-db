@@ -11,6 +11,7 @@ const titles: Record<DashboardView, string> = {
   overview: "Overview",
   notes: "Notes",
   "ai-news": "AI News",
+  "ai-coding-oss": "AI Coding OSS",
   tables: "Tables",
   query: "Read-only Query"
 };
@@ -57,7 +58,7 @@ export function SiteHeader({
                   onSearch();
                 }
               }}
-              placeholder="Search notes and AI news"
+              placeholder="Search notes, AI news, and AI coding OSS"
               value={query}
             />
           </div>

@@ -1,4 +1,5 @@
 import type {
+  AiCodingOssItem,
   AiNewsItem,
   DeleteRowResponse,
   HealthResponse,
@@ -27,6 +28,10 @@ export const api = {
     request<{ items: Note[] }>(`/api/notes?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
   aiNews: (query = "") =>
     request<{ items: AiNewsItem[] }>(`/api/ai-news?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
+  aiCodingOss: (query = "") =>
+    request<{ items: AiCodingOssItem[] }>(
+      `/api/ai-coding-oss?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`
+    ),
   tables: () => request<{ items: TableSummary[] }>("/api/tables"),
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),
   tableRows: (name: string, limit = 50) =>
@@ -52,5 +57,14 @@ export function formatDate(value?: string | null): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
+  }).format(new Date(value));
+}
+
+export function formatDateOnly(value?: string | null): string {
+  if (!value) return "No date";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric"
   }).format(new Date(value));
 }

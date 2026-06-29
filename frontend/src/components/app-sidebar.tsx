@@ -1,5 +1,6 @@
 import {
   ActivityIcon,
+  BotIcon,
   DatabaseIcon,
   FileTextIcon,
   LayoutDashboardIcon,
@@ -26,6 +27,7 @@ import {
 import type { DashboardView } from "@/types";
 
 type Counts = {
+  coding: number;
   notes: number;
   news: number;
   tables: number;
@@ -39,6 +41,7 @@ const navItems: Array<{
   { title: "Overview", view: "overview", icon: LayoutDashboardIcon },
   { title: "Notes", view: "notes", icon: FileTextIcon },
   { title: "AI News", view: "ai-news", icon: NewspaperIcon },
+  { title: "AI Coding OSS", view: "ai-coding-oss", icon: BotIcon },
   { title: "Tables", view: "tables", icon: Table2Icon },
   { title: "Read-only Query", view: "query", icon: TerminalIcon }
 ];
@@ -86,6 +89,7 @@ export function AppSidebar({
                     <span>{item.title}</span>
                     {item.view === "notes" ? <SidebarMenuBadge>{counts.notes}</SidebarMenuBadge> : null}
                     {item.view === "ai-news" ? <SidebarMenuBadge>{counts.news}</SidebarMenuBadge> : null}
+                    {item.view === "ai-coding-oss" ? <SidebarMenuBadge>{counts.coding}</SidebarMenuBadge> : null}
                     {item.view === "tables" ? <SidebarMenuBadge>{counts.tables}</SidebarMenuBadge> : null}
                   </SidebarMenuButton>
                 </SidebarMenuItem>

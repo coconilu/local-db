@@ -103,6 +103,8 @@ def health() -> dict[str, Any]:
         union all
         select 'ai_news_items' as name, count(*)::int as count from ai_news_items
         union all
+        select 'ai_coding_oss_top5_items' as name, count(*)::int as count from ai_coding_oss_top5_items
+        union all
         select 'tables' as name, count(*)::int as count
         from information_schema.tables
         where table_schema = 'public' and table_type = 'BASE TABLE';
@@ -173,6 +175,46 @@ def ai_news(
         from ai_news_items
         where {" and ".join(filters)}
         order by digest_run_at desc, digest_rank nulls last, published_at desc nulls last, id desc
+        limit %s offset %s;
+    """
+    params.extend([clamp_limit(limit), offset])
+    return {"items": rows(sql, tuple(params))}
+
+
+@app.get("/api/ai-coding-oss")
+def ai_coding_oss(
+    query: str | None = None,
+    limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
+    offset: int = Query(default=0, ge=0),
+) -> dict[str, Any]:
+    filters: list[str] = []
+    params: list[Any] = []
+    if query:
+        filters.append(
+            """
+            (
+              project_name ilike %s
+              or positioning ilike %s
+              or momentum_text ilike %s
+              or array_to_string(labels, ' ') ilike %s
+            )
+            """
+        )
+        like = f"%{query}%"
+        params.extend([like, like, like, like])
+    else:
+        filters.append("brief_date = (select max(brief_date) from ai_coding_oss_top5_items)")
+
+    sql = f"""
+        select
+          id, brief_date, digest_run_at, digest_rank,
+          repo_owner, repo_name, project_name, repo_url,
+          positioning, primary_language, momentum_text,
+          recent_update_text, recent_update_date, labels,
+          brief_summary, source_links, metadata, created_at, updated_at
+        from ai_coding_oss_top5_items
+        where {" and ".join(filters)}
+        order by brief_date desc, digest_rank asc, id desc
         limit %s offset %s;
     """
     params.extend([clamp_limit(limit), offset])

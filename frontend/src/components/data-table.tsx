@@ -39,10 +39,10 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api, formatDate } from "@/lib/api";
-import type { AiNewsItem, DashboardView, Note, QueryResult, TableDetail, TableSummary } from "@/types";
+import { api, formatDate, formatDateOnly } from "@/lib/api";
+import type { AiCodingOssItem, AiNewsItem, DashboardView, Note, QueryResult, TableDetail, TableSummary } from "@/types";
 
-type DataTab = "notes" | "ai-news" | "tables";
+type DataTab = "notes" | "ai-news" | "ai-coding-oss" | "tables";
 
 type DetailMetadata = {
   label: string;
@@ -71,12 +71,12 @@ type DeleteTarget = {
 };
 
 function toDataTab(view: DashboardView): DataTab {
-  if (view === "ai-news" || view === "tables") return view;
+  if (view === "ai-news" || view === "ai-coding-oss" || view === "tables") return view;
   return "notes";
 }
 
 function toDashboardView(value: string): DashboardView {
-  if (value === "ai-news" || value === "tables") return value;
+  if (value === "ai-news" || value === "ai-coding-oss" || value === "tables") return value;
   return "notes";
 }
 
@@ -95,6 +95,7 @@ function rowIdToNumber(value: unknown): number | null {
 }
 
 export function DataTable({
+  codingItems,
   isLoading,
   news,
   notes,
@@ -103,6 +104,7 @@ export function DataTable({
   tables,
   view
 }: {
+  codingItems: AiCodingOssItem[];
   isLoading: boolean;
   news: AiNewsItem[];
   notes: Note[];
@@ -178,6 +180,31 @@ export function DataTable({
         { label: "Category", value: item.category },
         { label: "Signal", value: item.signal_type },
         { label: "Verification", value: item.verification_status }
+      ]
+    });
+  }
+
+  function openCodingItem(item: AiCodingOssItem) {
+    const body = [
+      item.brief_summary ? `## Brief summary\n\n${item.brief_summary}` : "",
+      "## Positioning",
+      item.positioning,
+      "## Momentum",
+      item.momentum_text,
+      item.recent_update_text ? `## Recent update\n\n${item.recent_update_text}` : "",
+      item.labels.length ? `## Labels\n\n${item.labels.map((label) => `- ${label}`).join("\n")}` : ""
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    setDetail({
+      title: item.project_name,
+      description: `Rank #${item.digest_rank} · ${formatDateOnly(item.brief_date)}`,
+      body,
+      source: item.repo_url,
+      metadata: [
+        { label: "Language", value: item.primary_language ?? "unknown" },
+        { label: "Brief date", value: formatDateOnly(item.brief_date) }
       ]
     });
   }
@@ -292,6 +319,9 @@ export function DataTable({
             <TabsTrigger value="ai-news">
               AI News <Badge variant="secondary">{news.length}</Badge>
             </TabsTrigger>
+            <TabsTrigger value="ai-coding-oss">
+              AI Coding OSS <Badge variant="secondary">{codingItems.length}</Badge>
+            </TabsTrigger>
             <TabsTrigger value="tables">
               Tables <Badge variant="secondary">{tables.length}</Badge>
             </TabsTrigger>
@@ -319,6 +349,16 @@ export function DataTable({
               news={news}
               onOpenDetail={openNewsItem}
               onRequestDelete={setDeleteTarget}
+            />
+          </DataCard>
+        </TabsContent>
+
+        <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-coding-oss">
+          <DataCard description="Latest daily top-five AI coding repositories, backed by ai_coding_oss_top5_items" title="AI Coding OSS">
+            <AiCodingOssTable
+              codingItems={codingItems}
+              isLoading={isLoading}
+              onOpenDetail={openCodingItem}
             />
           </DataCard>
         </TabsContent>
@@ -569,6 +609,91 @@ function NewsTable({
                           <ExternalLinkIcon />
                         </a>
                       </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              : null}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function AiCodingOssTable({
+  codingItems,
+  isLoading,
+  onOpenDetail
+}: {
+  codingItems: AiCodingOssItem[];
+  isLoading: boolean;
+  onOpenDetail: (item: AiCodingOssItem) => void;
+}) {
+  return (
+    <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-x-auto">
+        <Table className="w-full min-w-[960px] table-fixed">
+          <TableHeader className="bg-muted">
+            <TableRow>
+              <TableHead className="w-[24%]">项目</TableHead>
+              <TableHead className="w-[30%]">一句话定位</TableHead>
+              <TableHead className="w-[12%]">主要语言</TableHead>
+              <TableHead className="w-[20%]">热度指标</TableHead>
+              <TableHead className="w-[14%]">标签</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? <LoadingRows columns={5} /> : null}
+            {!isLoading && codingItems.length === 0 ? (
+              <EmptyRow columns={5} label="No AI coding OSS rows match the current filter." />
+            ) : null}
+            {!isLoading
+              ? codingItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="whitespace-normal break-words align-top">
+                      <div className="flex min-w-0 flex-col gap-1">
+                        <button
+                          aria-label={`Open ${item.project_name}`}
+                          className="line-clamp-2 text-left text-base font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={() => onOpenDetail(item)}
+                          type="button"
+                        >
+                          {item.project_name}
+                        </button>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>#{item.digest_rank}</span>
+                          <span>{formatDateOnly(item.brief_date)}</span>
+                          <Button asChild aria-label={`Open repository ${item.project_name}`} size="icon-xs" variant="ghost">
+                            <a href={item.repo_url} rel="noreferrer" target="_blank">
+                              <ExternalLinkIcon />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="whitespace-normal break-words align-top">
+                      <button
+                        className="line-clamp-3 w-full whitespace-normal break-words text-left text-sm leading-6 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => onOpenDetail(item)}
+                        type="button"
+                      >
+                        {item.positioning}
+                      </button>
+                    </TableCell>
+                    <TableCell className="whitespace-normal break-words align-top text-muted-foreground">
+                      {item.primary_language ?? "unknown"}
+                    </TableCell>
+                    <TableCell className="whitespace-normal break-words align-top">
+                      <button
+                        className="line-clamp-3 w-full whitespace-normal break-words text-left text-sm leading-6 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => onOpenDetail(item)}
+                        type="button"
+                      >
+                        {item.momentum_text}
+                      </button>
+                    </TableCell>
+                    <TableCell className="whitespace-normal break-words align-top">
+                      <TagList tags={item.labels} />
                     </TableCell>
                   </TableRow>
                 ))

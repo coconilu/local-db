@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { DatabaseIcon, FileTextIcon, NewspaperIcon, ShieldCheckIcon, Table2Icon } from "lucide-react";
+import { BotIcon, DatabaseIcon, FileTextIcon, NewspaperIcon, ShieldCheckIcon, Table2Icon } from "lucide-react";
 
 type Counts = {
+  coding: number;
   notes: number;
   news: number;
   tables: number;
@@ -42,6 +43,13 @@ export function SectionCards({
       badge: "ai_news_items"
     },
     {
+      label: "AI Coding OSS",
+      value: counts.coding,
+      detail: "Daily top-five project rows",
+      icon: BotIcon,
+      badge: "ai_coding_oss_top5_items"
+    },
+    {
       label: "Mode",
       value: "Guarded",
       detail: isLoading ? "Syncing API state" : "Queries are read-only; deletes need confirmation",
@@ -51,7 +59,7 @@ export function SectionCards({
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 px-4 lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-5">
       {cards.map((card) => (
         <Card className="@container/card bg-gradient-to-t from-muted/40 to-card shadow-xs" key={card.label}>
           <CardHeader>
