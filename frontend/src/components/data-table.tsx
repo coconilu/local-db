@@ -44,6 +44,8 @@ import type { AiCodingOssItem, AiNewsItem, DashboardView, Note, QueryResult, Tab
 
 type DataTab = "notes" | "ai-news" | "ai-coding-oss" | "tables";
 
+const AI_CODING_PAGE_SIZE = 10;
+
 type DetailMetadata = {
   label: string;
   value: string;
@@ -629,6 +631,21 @@ function AiCodingOssTable({
   isLoading: boolean;
   onOpenDetail: (item: AiCodingOssItem) => void;
 }) {
+  const [page, setPage] = useState(1);
+  const pageCount = Math.max(1, Math.ceil(codingItems.length / AI_CODING_PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const startIndex = (currentPage - 1) * AI_CODING_PAGE_SIZE;
+  const pageItems = useMemo(
+    () => codingItems.slice(startIndex, startIndex + AI_CODING_PAGE_SIZE),
+    [codingItems, startIndex]
+  );
+  const visibleStart = codingItems.length === 0 ? 0 : startIndex + 1;
+  const visibleEnd = Math.min(codingItems.length, startIndex + pageItems.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [codingItems]);
+
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="overflow-x-auto">
@@ -648,7 +665,7 @@ function AiCodingOssTable({
               <EmptyRow columns={5} label="No AI coding OSS rows match the current filter." />
             ) : null}
             {!isLoading
-              ? codingItems.map((item) => (
+              ? pageItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="whitespace-normal break-words align-top">
                       <div className="flex min-w-0 flex-col gap-1">
@@ -700,6 +717,34 @@ function AiCodingOssTable({
               : null}
           </TableBody>
         </Table>
+      </div>
+      <div className="flex flex-col gap-3 border-t bg-muted/20 px-3 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          Showing {visibleStart}-{visibleEnd} of {codingItems.length}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            disabled={isLoading || currentPage <= 1}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Previous
+          </Button>
+          <span className="min-w-20 text-center tabular-nums">
+            Page {currentPage} / {pageCount}
+          </span>
+          <Button
+            disabled={isLoading || currentPage >= pageCount}
+            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -116,21 +116,25 @@ export function App() {
                   </div>
                 ) : null}
 
-                <SectionCards counts={counts} databaseName={databaseName} isLoading={loading} status={health?.status ?? "checking"} />
-
                 {view === "query" ? (
                   <div className="px-4 lg:px-6">
                     <QueryConsole />
                   </div>
-                ) : (
+                ) : view === "overview" ? (
                   <>
+                    <SectionCards
+                      counts={counts}
+                      databaseName={databaseName}
+                      isLoading={loading}
+                      status={health?.status ?? "checking"}
+                    />
                     <div className="px-4 lg:px-6">
-                    <ChartAreaInteractive codingItems={codingItems} news={news} notes={notes} tables={tables} />
-                  </div>
-                  <DataTable
-                    codingItems={codingItems}
-                    isLoading={loading}
-                    news={news}
+                      <ChartAreaInteractive codingItems={codingItems} news={news} notes={notes} tables={tables} />
+                    </div>
+                    <DataTable
+                      codingItems={codingItems}
+                      isLoading={loading}
+                      news={news}
                       notes={notes}
                       onDataChanged={() => fetchDashboard(query)}
                       onViewChange={setView}
@@ -138,6 +142,17 @@ export function App() {
                       view={view}
                     />
                   </>
+                ) : (
+                  <DataTable
+                    codingItems={codingItems}
+                    isLoading={loading}
+                    news={news}
+                    notes={notes}
+                    onDataChanged={() => fetchDashboard(query)}
+                    onViewChange={setView}
+                    tables={tables}
+                    view={view}
+                  />
                 )}
               </div>
             </div>

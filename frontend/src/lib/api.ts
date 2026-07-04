@@ -30,7 +30,7 @@ export const api = {
     request<{ items: AiNewsItem[] }>(`/api/ai-news?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
   aiCodingOss: (query = "") =>
     request<{ items: AiCodingOssItem[] }>(
-      `/api/ai-coding-oss?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`
+      `/api/ai-coding-oss?limit=100${query ? `&query=${encodeURIComponent(query)}` : ""}`
     ),
   tables: () => request<{ items: TableSummary[] }>("/api/tables"),
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),

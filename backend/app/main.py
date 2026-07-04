@@ -184,6 +184,7 @@ def ai_news(
 @app.get("/api/ai-coding-oss")
 def ai_coding_oss(
     query: str | None = None,
+    latest_only: bool = Query(default=False),
     limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
     offset: int = Query(default=0, ge=0),
 ) -> dict[str, Any]:
@@ -202,8 +203,10 @@ def ai_coding_oss(
         )
         like = f"%{query}%"
         params.extend([like, like, like, like])
-    else:
+    if latest_only:
         filters.append("brief_date = (select max(brief_date) from ai_coding_oss_top5_items)")
+
+    where = "where " + " and ".join(filters) if filters else ""
 
     sql = f"""
         select
@@ -213,7 +216,7 @@ def ai_coding_oss(
           recent_update_text, recent_update_date, labels,
           brief_summary, source_links, metadata, created_at, updated_at
         from ai_coding_oss_top5_items
-        where {" and ".join(filters)}
+        {where}
         order by brief_date desc, digest_rank asc, id desc
         limit %s offset %s;
     """
