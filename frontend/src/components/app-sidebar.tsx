@@ -34,17 +34,35 @@ type Counts = {
 };
 
 const navItems: Array<{
+  description?: string;
   title: string;
   view: DashboardView;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  unit?: string;
 }> = [
-  { title: "Overview", view: "overview", icon: LayoutDashboardIcon },
-  { title: "Notes", view: "notes", icon: FileTextIcon },
-  { title: "AI News", view: "ai-news", icon: NewspaperIcon },
-  { title: "AI Coding OSS", view: "ai-coding-oss", icon: BotIcon },
-  { title: "Tables", view: "tables", icon: Table2Icon },
-  { title: "Read-only Query", view: "query", icon: TerminalIcon }
+  { title: "工作台总览", view: "overview", icon: LayoutDashboardIcon },
+  { description: "沉淀、标签和来源", title: "笔记库", view: "notes", icon: FileTextIcon, unit: "条" },
+  { description: "资讯、优先级和可信度", title: "AI 信号流", view: "ai-news", icon: NewspaperIcon, unit: "条" },
+  { description: "每日 Top 5 开源项目", title: "开源项目雷达", view: "ai-coding-oss", icon: BotIcon, unit: "项" }
 ];
+
+const systemItems: Array<{
+  title: string;
+  view: DashboardView;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  unit?: string;
+}> = [
+  { title: "数据表", view: "tables", icon: Table2Icon, unit: "张" },
+  { title: "只读 SQL", view: "query", icon: TerminalIcon }
+];
+
+function countForView(view: DashboardView, counts: Counts) {
+  if (view === "notes") return counts.notes;
+  if (view === "ai-news") return counts.news;
+  if (view === "ai-coding-oss") return counts.coding;
+  if (view === "tables") return counts.tables;
+  return null;
+}
 
 export function AppSidebar({
   activeView,
@@ -67,7 +85,7 @@ export function AppSidebar({
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">Local DB</span>
-                <span className="truncate text-xs text-muted-foreground">PostgreSQL control plane</span>
+                <span className="truncate text-xs text-muted-foreground">知识与信号工作台</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -75,10 +93,43 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel>内容工作区</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {navItems.map((item) => {
+                const count = countForView(item.view, counts);
+
+                return (
+                <SidebarMenuItem key={item.view}>
+                  <SidebarMenuButton
+                    className={item.description ? "h-11 pr-14" : undefined}
+                    isActive={activeView === item.view}
+                    onClick={() => onViewChange(item.view)}
+                    tooltip={item.title}
+                  >
+                    <item.icon />
+                    <span className={item.description ? "grid min-w-0 flex-1 leading-tight" : undefined}>
+                      <span className="truncate">{item.title}</span>
+                      {item.description ? (
+                        <span className="truncate text-xs font-normal text-sidebar-foreground/60">{item.description}</span>
+                      ) : null}
+                    </span>
+                    {count !== null && item.unit ? <SidebarMenuBadge>{count}{item.unit}</SidebarMenuBadge> : null}
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>系统工具</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {systemItems.map((item) => {
+                const count = countForView(item.view, counts);
+
+                return (
                 <SidebarMenuItem key={item.view}>
                   <SidebarMenuButton
                     isActive={activeView === item.view}
@@ -87,18 +138,16 @@ export function AppSidebar({
                   >
                     <item.icon />
                     <span>{item.title}</span>
-                    {item.view === "notes" ? <SidebarMenuBadge>{counts.notes}</SidebarMenuBadge> : null}
-                    {item.view === "ai-news" ? <SidebarMenuBadge>{counts.news}</SidebarMenuBadge> : null}
-                    {item.view === "ai-coding-oss" ? <SidebarMenuBadge>{counts.coding}</SidebarMenuBadge> : null}
-                    {item.view === "tables" ? <SidebarMenuBadge>{counts.tables}</SidebarMenuBadge> : null}
+                    {count !== null && item.unit ? <SidebarMenuBadge>{count}{item.unit}</SidebarMenuBadge> : null}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup className="mt-auto">
-          <SidebarGroupLabel>Runtime</SidebarGroupLabel>
+          <SidebarGroupLabel>运行边界</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -119,7 +168,7 @@ export function AppSidebar({
       </SidebarContent>
       <SidebarFooter>
         <div className="rounded-lg border bg-background/60 p-3 text-xs text-muted-foreground">
-          Queries stay read-only. Row deletes require an explicit confirmation.
+          Dashboard 只负责浏览；写入和迁移继续走 Docker CLI。
         </div>
       </SidebarFooter>
     </Sidebar>

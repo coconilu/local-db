@@ -123,9 +123,12 @@ export function App() {
                 ) : view === "overview" ? (
                   <>
                     <SectionCards
+                      codingItems={codingItems}
                       counts={counts}
                       databaseName={databaseName}
                       isLoading={loading}
+                      news={news}
+                      notes={notes}
                       status={health?.status ?? "checking"}
                     />
                     <div className="px-4 lg:px-6">

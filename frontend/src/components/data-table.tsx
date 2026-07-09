@@ -8,13 +8,6 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -151,24 +144,24 @@ export function DataTable({
 
   function openNote(note: Note) {
     setDetail({
-      title: `Note #${note.id}`,
-      description: `Created ${formatDate(note.created_at)}`,
+      title: `笔记 #${note.id}`,
+      description: `创建于 ${formatDate(note.created_at)}`,
       body: note.content,
       source: note.source,
       metadata: [
-        { label: "Tags", value: note.tags.length ? note.tags.join(", ") : "none" },
-        { label: "Updated", value: formatDate(note.updated_at) }
+        { label: "标签", value: note.tags.length ? note.tags.join(", ") : "无" },
+        { label: "更新于", value: formatDate(note.updated_at) }
       ]
     });
   }
 
   function openNewsItem(item: AiNewsItem) {
     const body = [
-      "## Summary",
+      "## 摘要",
       item.summary,
-      item.why_it_matters ? `## Why it matters\n\n${item.why_it_matters}` : "",
-      item.entities.length ? `## Entities\n\n${item.entities.map((entity) => `- ${entity}`).join("\n")}` : "",
-      item.tags.length ? `## Tags\n\n${item.tags.map((tag) => `- ${tag}`).join("\n")}` : ""
+      item.why_it_matters ? `## 为什么重要\n\n${item.why_it_matters}` : "",
+      item.entities.length ? `## 相关实体\n\n${item.entities.map((entity) => `- ${entity}`).join("\n")}` : "",
+      item.tags.length ? `## 标签\n\n${item.tags.map((tag) => `- ${tag}`).join("\n")}` : ""
     ]
       .filter(Boolean)
       .join("\n\n");
@@ -179,34 +172,34 @@ export function DataTable({
       body,
       source: item.source_url,
       metadata: [
-        { label: "Category", value: item.category },
-        { label: "Signal", value: item.signal_type },
-        { label: "Verification", value: item.verification_status }
+        { label: "分类", value: item.category },
+        { label: "信号", value: item.signal_type },
+        { label: "核验", value: item.verification_status }
       ]
     });
   }
 
   function openCodingItem(item: AiCodingOssItem) {
     const body = [
-      item.brief_summary ? `## Brief summary\n\n${item.brief_summary}` : "",
-      "## Positioning",
+      item.brief_summary ? `## 简要摘要\n\n${item.brief_summary}` : "",
+      "## 一句话定位",
       item.positioning,
-      "## Momentum",
+      "## 热度指标",
       item.momentum_text,
-      item.recent_update_text ? `## Recent update\n\n${item.recent_update_text}` : "",
-      item.labels.length ? `## Labels\n\n${item.labels.map((label) => `- ${label}`).join("\n")}` : ""
+      item.recent_update_text ? `## 最近更新\n\n${item.recent_update_text}` : "",
+      item.labels.length ? `## 标签\n\n${item.labels.map((label) => `- ${label}`).join("\n")}` : ""
     ]
       .filter(Boolean)
       .join("\n\n");
 
     setDetail({
       title: item.project_name,
-      description: `Rank #${item.digest_rank} · ${formatDateOnly(item.brief_date)}`,
+      description: `排名 #${item.digest_rank} · ${formatDateOnly(item.brief_date)}`,
       body,
       source: item.repo_url,
       metadata: [
-        { label: "Language", value: item.primary_language ?? "unknown" },
-        { label: "Brief date", value: formatDateOnly(item.brief_date) }
+        { label: "语言", value: item.primary_language ?? "未知" },
+        { label: "日报日期", value: formatDateOnly(item.brief_date) }
       ]
     });
   }
@@ -223,8 +216,8 @@ export function DataTable({
     setDeletingKey(deleteTargetKey(target));
     try {
       await api.deleteRow(target.tableName, target.rowId);
-      toast.success("Row deleted", {
-        description: `${target.label} was deleted.`
+      toast.success("已删除", {
+        description: `${target.label} 已删除。`
       });
       setDeleteTarget(null);
       setDetail(null);
@@ -235,8 +228,8 @@ export function DataTable({
       }
       await Promise.all(refreshes);
     } catch (err) {
-      toast.error("Delete failed", {
-        description: err instanceof Error ? err.message : `Could not delete ${target.label}.`
+      toast.error("删除失败", {
+        description: err instanceof Error ? err.message : `无法删除 ${target.label}。`
       });
     } finally {
       setDeletingKey("");
@@ -314,27 +307,27 @@ export function DataTable({
         value={activeTab}
       >
         <div className="flex items-center justify-between px-4 lg:px-6">
-          <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
+          <TabsList className="h-auto flex-wrap justify-start **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
             <TabsTrigger value="notes">
-              Notes <Badge variant="secondary">{notes.length}</Badge>
+              笔记库 <Badge variant="secondary">{notes.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="ai-news">
-              AI News <Badge variant="secondary">{news.length}</Badge>
+              AI 信号 <Badge variant="secondary">{news.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="ai-coding-oss">
-              AI Coding OSS <Badge variant="secondary">{codingItems.length}</Badge>
+              开源雷达 <Badge variant="secondary">{codingItems.length}</Badge>
             </TabsTrigger>
             <TabsTrigger value="tables">
-              Tables <Badge variant="secondary">{tables.length}</Badge>
+              数据表 <Badge variant="secondary">{tables.length}</Badge>
             </TabsTrigger>
           </TabsList>
           <Badge className="hidden md:inline-flex" variant="outline">
-            Delete requires confirmation
+            删除需确认
           </Badge>
         </div>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="notes">
-          <DataCard description="Recent rows from the notes table" title="Notes">
+          <DataCard description="按内容、标签和来源回看可复用知识" title="笔记库">
             <NotesTable
               isLoading={isLoading}
               notes={notes}
@@ -345,7 +338,7 @@ export function DataTable({
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-news">
-          <DataCard description="AI signal rows with source and verification context" title="AI News">
+          <DataCard description="先看优先级和可信度，再打开原始来源" title="AI 信号流">
             <NewsTable
               isLoading={isLoading}
               news={news}
@@ -356,7 +349,7 @@ export function DataTable({
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-coding-oss">
-          <DataCard description="Latest daily top-five AI coding repositories, backed by ai_coding_oss_top5_items" title="AI Coding OSS">
+          <DataCard description="默认聚焦最新日报，也可以切换到全部项目" title="开源项目雷达">
             <AiCodingOssTable
               codingItems={codingItems}
               isLoading={isLoading}
@@ -366,7 +359,7 @@ export function DataTable({
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="tables">
-          <DataCard description="Click a table to inspect recent rows and schema" title="Tables">
+          <DataCard description="系统工具：检查表结构、近期行和索引" title="数据表">
             <TablesTable
               isLoading={isLoading}
               loadingTable={loadingTable}
@@ -393,8 +386,8 @@ export function DataTable({
             type="button"
           />
           <SheetHeader>
-            <SheetTitle>{tablePreview?.name ?? "Table data"}</SheetTitle>
-            <SheetDescription>Preview recent rows and public schema metadata. Deletes require confirmation.</SheetDescription>
+            <SheetTitle>{tablePreview?.name ?? "表数据"}</SheetTitle>
+            <SheetDescription>预览近期行和 public schema 元数据。删除操作需要确认。</SheetDescription>
           </SheetHeader>
           {tablePreview ? (
             <TablePreviewPanel onOpenDetail={setDetail} onRequestDelete={setDeleteTarget} preview={tablePreview} />
@@ -423,13 +416,15 @@ function DataCard({
   title: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <section className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1 rounded-lg border bg-card/80 px-4 py-3 shadow-xs md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-base font-semibold">{title}</h2>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
   );
 }
 
@@ -449,6 +444,34 @@ function LoadingRows({ columns }: { columns: number }) {
   );
 }
 
+function LoadingListRows({ rows = 4 }: { rows?: number }) {
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, row) => (
+        <div className="grid gap-3 border-b p-4 last:border-b-0 md:grid-cols-[1fr_auto]" key={row}>
+          <div className="flex min-w-0 flex-col gap-3">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-5 w-full max-w-2xl" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+          <div className="flex gap-1">
+            <Skeleton className="size-6" />
+            <Skeleton className="size-6" />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
+function EmptyBlock({ label }: { label: string }) {
+  return (
+    <div className="rounded-lg border border-dashed bg-muted/20 p-8 text-center text-sm text-muted-foreground">
+      {label}
+    </div>
+  );
+}
+
 function NotesTable({
   isLoading,
   notes,
@@ -460,73 +483,94 @@ function NotesTable({
   onOpenDetail: (note: Note) => void;
   onRequestDelete: (target: DeleteTarget) => void;
 }) {
+  const [activeTag, setActiveTag] = useState("all");
+  const tagOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const note of notes) {
+      for (const tag of note.tags) {
+        counts.set(tag, (counts.get(tag) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+      .slice(0, 8);
+  }, [notes]);
+  const visibleNotes = useMemo(
+    () => (activeTag === "all" ? notes : notes.filter((note) => note.tags.includes(activeTag))),
+    [activeTag, notes]
+  );
+
+  useEffect(() => {
+    if (activeTag !== "all" && !tagOptions.some(([tag]) => tag === activeTag)) {
+      setActiveTag("all");
+    }
+  }, [activeTag, tagOptions]);
+
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <div className="overflow-x-auto">
-        <Table className="min-w-[1040px]">
-          <TableHeader className="bg-muted">
-            <TableRow>
-              <TableHead className="sticky left-0 z-20 w-24 bg-muted">Action</TableHead>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead className="w-52">Source</TableHead>
-              <TableHead className="w-72">Tags</TableHead>
-              <TableHead className="w-40">Created</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? <LoadingRows columns={6} /> : null}
-            {!isLoading && notes.length === 0 ? <EmptyRow columns={6} label="No notes match the current filter." /> : null}
-            {!isLoading
-              ? notes.map((note) => (
-                  <TableRow key={note.id}>
-                    <TableCell className="sticky left-0 z-10 bg-card">
-                      <ActionButtons
-                        deleteLabel={`Delete Note #${note.id}`}
-                        detailLabel={`Open Note #${note.id}`}
-                        onDelete={() =>
-                          onRequestDelete({
-                            tableName: "notes",
-                            rowId: note.id,
-                            label: `Note #${note.id}`,
-                            description: valueToPreview(note.content) || "No note content"
-                          })
-                        }
-                        onOpenDetail={() => onOpenDetail(note)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        aria-label={`Open Note #${note.id}`}
-                        className="font-mono"
-                        onClick={() => onOpenDetail(note)}
-                        size="xs"
-                        variant="ghost"
-                      >
-                        #{note.id}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <DetailButton
-                        description={`Created ${formatDate(note.created_at)}`}
-                        maxWidthClassName="max-w-[640px]"
-                        onOpenDetail={() => onOpenDetail(note)}
-                        title={`Note #${note.id}`}
-                        value={note.content}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <SourceLink source={note.source} />
-                    </TableCell>
-                    <TableCell>
-                      <TagList tags={note.tags} />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(note.created_at)}</TableCell>
-                  </TableRow>
-                ))
-              : null}
-          </TableBody>
-        </Table>
+    <div className="flex flex-col gap-3">
+      {tagOptions.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 p-2">
+          <span className="px-1 text-xs font-medium text-muted-foreground">标签筛选</span>
+          <Button onClick={() => setActiveTag("all")} size="xs" type="button" variant={activeTag === "all" ? "default" : "outline"}>
+            全部
+          </Button>
+          {tagOptions.map(([tag, count]) => (
+            <Button
+              key={tag}
+              onClick={() => setActiveTag(tag)}
+              size="xs"
+              type="button"
+              variant={activeTag === tag ? "default" : "outline"}
+            >
+              {tag} <span className="text-xs opacity-70">{count}</span>
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-lg border bg-card">
+        {isLoading ? <LoadingListRows /> : null}
+        {!isLoading && notes.length === 0 ? <EmptyBlock label="没有匹配当前搜索的笔记。" /> : null}
+        {!isLoading && notes.length > 0 && visibleNotes.length === 0 ? <EmptyBlock label="这个标签下没有匹配的笔记。" /> : null}
+        {!isLoading
+          ? visibleNotes.map((note) => (
+              <div className="grid gap-3 border-b p-4 last:border-b-0 md:grid-cols-[minmax(0,1fr)_auto]" key={note.id}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline">#{note.id}</Badge>
+                    <span>更新于 {formatDate(note.updated_at)}</span>
+                    <SourceLink source={note.source} />
+                  </div>
+                  <button
+                    aria-label={`打开笔记 #${note.id}`}
+                    className="mt-2 line-clamp-3 w-full text-left text-sm leading-6 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => onOpenDetail(note)}
+                    type="button"
+                  >
+                    {note.content}
+                  </button>
+                  <div className="mt-3">
+                    <TagList tags={note.tags} />
+                  </div>
+                </div>
+                <ActionButtons
+                  deleteLabel={`删除笔记 #${note.id}`}
+                  detailLabel={`打开笔记 #${note.id}`}
+                  onDelete={() =>
+                    onRequestDelete({
+                      tableName: "notes",
+                      rowId: note.id,
+                      label: `笔记 #${note.id}`,
+                      description: valueToPreview(note.content) || "没有笔记内容"
+                    })
+                  }
+                  onOpenDetail={() => onOpenDetail(note)}
+                />
+              </div>
+            ))
+          : null}
       </div>
     </div>
   );
@@ -543,80 +587,108 @@ function NewsTable({
   onOpenDetail: (item: AiNewsItem) => void;
   onRequestDelete: (target: DeleteTarget) => void;
 }) {
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const priorityOptions = useMemo(
+    () => Array.from(new Set(news.map((item) => item.priority).filter(Boolean))).slice(0, 8),
+    [news]
+  );
+  const visibleNews = useMemo(
+    () => (priorityFilter === "all" ? news : news.filter((item) => item.priority === priorityFilter)),
+    [news, priorityFilter]
+  );
+
+  useEffect(() => {
+    if (priorityFilter !== "all" && !priorityOptions.includes(priorityFilter)) {
+      setPriorityFilter("all");
+    }
+  }, [priorityFilter, priorityOptions]);
+
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <div className="overflow-x-auto">
-        <Table className="min-w-[1120px]">
-          <TableHeader className="bg-muted">
-            <TableRow>
-              <TableHead className="sticky left-0 z-20 w-24 bg-muted">Action</TableHead>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead className="w-32">Priority</TableHead>
-              <TableHead className="w-40">Source</TableHead>
-              <TableHead className="w-36">Updated</TableHead>
-              <TableHead className="w-16" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? <LoadingRows columns={7} /> : null}
-            {!isLoading && news.length === 0 ? <EmptyRow columns={7} label="No AI news rows match the current filter." /> : null}
-            {!isLoading
-              ? news.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="sticky left-0 z-10 bg-card">
-                      <ActionButtons
-                        deleteLabel={`Delete AI news item #${item.id}`}
-                        detailLabel={`Open AI news item #${item.id}`}
-                        onDelete={() =>
-                          onRequestDelete({
-                            tableName: "ai_news_items",
-                            rowId: item.id,
-                            label: `AI news item #${item.id}`,
-                            description: item.title
-                          })
-                        }
-                        onOpenDetail={() => onOpenDetail(item)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        aria-label={`Open AI news item #${item.id}`}
-                        className="font-mono"
-                        onClick={() => onOpenDetail(item)}
-                        size="xs"
-                        variant="ghost"
-                      >
-                        #{item.id}
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <button
-                        className="flex max-w-[640px] flex-col gap-1 text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        onClick={() => onOpenDetail(item)}
-                        type="button"
-                      >
-                        <span className="truncate font-medium">{item.title}</span>
-                        <span className="line-clamp-2 text-xs text-muted-foreground">{item.summary}</span>
-                      </button>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{item.priority}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">{item.source_name}</TableCell>
-                    <TableCell className="text-muted-foreground">{formatDate(item.updated_at)}</TableCell>
-                    <TableCell>
-                      <Button asChild aria-label={`Open source for ${item.title}`} size="icon-sm" variant="ghost">
-                        <a href={item.source_url} rel="noreferrer" target="_blank">
-                          <ExternalLinkIcon />
-                        </a>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              : null}
-          </TableBody>
-        </Table>
+    <div className="flex flex-col gap-3">
+      {priorityOptions.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 p-2">
+          <span className="px-1 text-xs font-medium text-muted-foreground">优先级</span>
+          <Button
+            onClick={() => setPriorityFilter("all")}
+            size="xs"
+            type="button"
+            variant={priorityFilter === "all" ? "default" : "outline"}
+          >
+            全部
+          </Button>
+          {priorityOptions.map((priority) => (
+            <Button
+              key={priority}
+              onClick={() => setPriorityFilter(priority)}
+              size="xs"
+              type="button"
+              variant={priorityFilter === priority ? "default" : "outline"}
+            >
+              {priority}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="overflow-hidden rounded-lg border bg-card">
+        {isLoading ? <LoadingListRows /> : null}
+        {!isLoading && news.length === 0 ? <EmptyBlock label="没有匹配当前搜索的 AI 信号。" /> : null}
+        {!isLoading && news.length > 0 && visibleNews.length === 0 ? <EmptyBlock label="这个优先级下没有匹配的信号。" /> : null}
+        {!isLoading
+          ? visibleNews.map((item) => (
+              <div className="grid gap-4 border-b p-4 last:border-b-0 lg:grid-cols-[minmax(0,1fr)_auto]" key={item.id}>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{item.priority}</Badge>
+                    <Badge variant="secondary">{item.category}</Badge>
+                    <Badge variant="secondary">{item.signal_type}</Badge>
+                    <Badge variant="outline">{item.verification_status}</Badge>
+                  </div>
+                  <button
+                    aria-label={`打开 AI 信号 #${item.id}`}
+                    className="mt-3 block w-full text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => onOpenDetail(item)}
+                    type="button"
+                  >
+                    <span className="line-clamp-2 text-base font-semibold">{item.title}</span>
+                    <span className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{item.summary}</span>
+                  </button>
+                  {item.why_it_matters ? (
+                    <div className="mt-3 rounded-md bg-muted/40 px-3 py-2 text-sm leading-6">
+                      <span className="font-medium">为什么重要：</span>
+                      <span className="text-muted-foreground">{item.why_it_matters}</span>
+                    </div>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>{item.source_name}</span>
+                    <span>更新于 {formatDate(item.updated_at)}</span>
+                    <TagList tags={item.tags} />
+                  </div>
+                </div>
+                <div className="flex items-start gap-1">
+                  <Button asChild aria-label={`打开来源：${item.title}`} size="sm" variant="outline">
+                    <a href={item.source_url} rel="noreferrer" target="_blank">
+                      来源
+                      <ExternalLinkIcon data-icon="inline-end" />
+                    </a>
+                  </Button>
+                  <ActionButtons
+                    deleteLabel={`删除 AI 信号 #${item.id}`}
+                    detailLabel={`打开 AI 信号 #${item.id}`}
+                    onDelete={() =>
+                      onRequestDelete({
+                        tableName: "ai_news_items",
+                        rowId: item.id,
+                        label: `AI 信号 #${item.id}`,
+                        description: item.title
+                      })
+                    }
+                    onOpenDetail={() => onOpenDetail(item)}
+                  />
+                </div>
+              </div>
+            ))
+          : null}
       </div>
     </div>
   );
@@ -632,22 +704,60 @@ function AiCodingOssTable({
   onOpenDetail: (item: AiCodingOssItem) => void;
 }) {
   const [page, setPage] = useState(1);
-  const pageCount = Math.max(1, Math.ceil(codingItems.length / AI_CODING_PAGE_SIZE));
+  const [mode, setMode] = useState<"latest" | "all">("latest");
+  const latestBriefDate = codingItems[0]?.brief_date ?? "";
+  const visibleItems = useMemo(
+    () =>
+      mode === "latest" && latestBriefDate
+        ? codingItems.filter((item) => item.brief_date === latestBriefDate)
+        : codingItems,
+    [codingItems, latestBriefDate, mode]
+  );
+  const languageCount = new Set(visibleItems.map((item) => item.primary_language).filter(Boolean)).size;
+  const pageCount = Math.max(1, Math.ceil(visibleItems.length / AI_CODING_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const startIndex = (currentPage - 1) * AI_CODING_PAGE_SIZE;
   const pageItems = useMemo(
-    () => codingItems.slice(startIndex, startIndex + AI_CODING_PAGE_SIZE),
-    [codingItems, startIndex]
+    () => visibleItems.slice(startIndex, startIndex + AI_CODING_PAGE_SIZE),
+    [startIndex, visibleItems]
   );
-  const visibleStart = codingItems.length === 0 ? 0 : startIndex + 1;
-  const visibleEnd = Math.min(codingItems.length, startIndex + pageItems.length);
+  const visibleStart = visibleItems.length === 0 ? 0 : startIndex + 1;
+  const visibleEnd = Math.min(visibleItems.length, startIndex + pageItems.length);
 
   useEffect(() => {
     setPage(1);
-  }, [codingItems]);
+  }, [mode, visibleItems]);
 
   return (
     <div className="overflow-hidden rounded-lg border">
+      <div className="flex flex-col gap-3 border-b bg-muted/20 p-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <div className="text-sm font-medium">
+            {latestBriefDate ? `${formatDateOnly(latestBriefDate)} 最新日报` : "开源项目观察"}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            当前显示 {visibleItems.length} 项 · {languageCount || 0} 种主要语言
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setMode("latest")}
+            size="sm"
+            type="button"
+            variant={mode === "latest" ? "default" : "outline"}
+          >
+            最新日报
+          </Button>
+          <Button
+            onClick={() => setMode("all")}
+            size="sm"
+            type="button"
+            variant={mode === "all" ? "default" : "outline"}
+          >
+            全部项目
+          </Button>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <Table className="w-full min-w-[960px] table-fixed">
           <TableHeader className="bg-muted">
@@ -662,7 +772,7 @@ function AiCodingOssTable({
           <TableBody>
             {isLoading ? <LoadingRows columns={5} /> : null}
             {!isLoading && codingItems.length === 0 ? (
-              <EmptyRow columns={5} label="No AI coding OSS rows match the current filter." />
+              <EmptyRow columns={5} label="没有匹配当前搜索的开源项目。" />
             ) : null}
             {!isLoading
               ? pageItems.map((item) => (
@@ -670,7 +780,7 @@ function AiCodingOssTable({
                     <TableCell className="whitespace-normal break-words align-top">
                       <div className="flex min-w-0 flex-col gap-1">
                         <button
-                          aria-label={`Open ${item.project_name}`}
+                          aria-label={`打开 ${item.project_name}`}
                           className="line-clamp-2 text-left text-base font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           onClick={() => onOpenDetail(item)}
                           type="button"
@@ -680,7 +790,7 @@ function AiCodingOssTable({
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <span>#{item.digest_rank}</span>
                           <span>{formatDateOnly(item.brief_date)}</span>
-                          <Button asChild aria-label={`Open repository ${item.project_name}`} size="icon-xs" variant="ghost">
+                          <Button asChild aria-label={`打开仓库 ${item.project_name}`} size="icon-xs" variant="ghost">
                             <a href={item.repo_url} rel="noreferrer" target="_blank">
                               <ExternalLinkIcon />
                             </a>
@@ -698,7 +808,7 @@ function AiCodingOssTable({
                       </button>
                     </TableCell>
                     <TableCell className="whitespace-normal break-words align-top text-muted-foreground">
-                      {item.primary_language ?? "unknown"}
+                      {item.primary_language ?? "未知"}
                     </TableCell>
                     <TableCell className="whitespace-normal break-words align-top">
                       <button
@@ -720,7 +830,7 @@ function AiCodingOssTable({
       </div>
       <div className="flex flex-col gap-3 border-t bg-muted/20 px-3 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div>
-          Showing {visibleStart}-{visibleEnd} of {codingItems.length}
+          显示 {visibleStart}-{visibleEnd} / {visibleItems.length}
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -730,10 +840,10 @@ function AiCodingOssTable({
             type="button"
             variant="outline"
           >
-            Previous
+            上一页
           </Button>
           <span className="min-w-20 text-center tabular-nums">
-            Page {currentPage} / {pageCount}
+            第 {currentPage} / {pageCount} 页
           </span>
           <Button
             disabled={isLoading || currentPage >= pageCount}
@@ -742,7 +852,7 @@ function AiCodingOssTable({
             type="button"
             variant="outline"
           >
-            Next
+            下一页
           </Button>
         </div>
       </div>
@@ -766,16 +876,16 @@ function TablesTable({
   return (
     <div className="overflow-hidden rounded-lg border">
       <Table>
-        <TableHeader className="bg-muted">
-          <TableRow>
-            <TableHead>Table</TableHead>
-            <TableHead className="w-40">Estimated rows</TableHead>
+          <TableHeader className="bg-muted">
+            <TableRow>
+            <TableHead>表</TableHead>
+            <TableHead className="w-40">估算行数</TableHead>
             <TableHead className="w-28" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? <LoadingRows columns={3} /> : null}
-          {!isLoading && sortedTables.length === 0 ? <EmptyRow columns={3} label="No public tables returned." /> : null}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? <LoadingRows columns={3} /> : null}
+          {!isLoading && sortedTables.length === 0 ? <EmptyRow columns={3} label="没有返回 public 表。" /> : null}
           {!isLoading
             ? sortedTables.map((table) => (
                 <TableRow className="cursor-pointer" key={table.table_name} onClick={() => onOpenTable(table.table_name)}>
@@ -797,7 +907,7 @@ function TablesTable({
                       variant="outline"
                     >
                       {loadingTable === table.table_name ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
-                      Open
+                      打开
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -821,8 +931,8 @@ function TablePreviewPanel({
   return (
     <Tabs className="min-h-0 flex-1 px-4 pb-6" defaultValue="rows">
       <TabsList>
-        <TabsTrigger value="rows">Rows</TabsTrigger>
-        <TabsTrigger value="schema">Schema</TabsTrigger>
+        <TabsTrigger value="rows">近期行</TabsTrigger>
+        <TabsTrigger value="schema">结构</TabsTrigger>
       </TabsList>
       <TabsContent className="mt-4 min-h-0" value="rows">
         <TableRowsPreview onOpenDetail={onOpenDetail} onRequestDelete={onRequestDelete} preview={preview} />
@@ -844,7 +954,7 @@ function TableRowsPreview({
   preview: TablePreview;
 }) {
   if (preview.data.rows.length === 0) {
-    return <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">No rows returned for this table.</div>;
+    return <div className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">这张表没有返回行。</div>;
   }
 
   return (
@@ -871,10 +981,10 @@ function TableRowsPreview({
                       deleteDisabled={rowId === null}
                       deleteLabel={
                         rowId === null
-                          ? `Cannot delete ${preview.name} row ${rowIndex + 1}: no numeric id`
-                          : `Delete ${preview.name} #${rowId}`
+                          ? `无法删除 ${preview.name} 第 ${rowIndex + 1} 行：没有数字 id`
+                          : `删除 ${preview.name} #${rowId}`
                       }
-                      detailLabel={`Open ${preview.name} row ${rowIndex + 1}`}
+                      detailLabel={`打开 ${preview.name} 第 ${rowIndex + 1} 行`}
                       onDelete={
                         rowId === null
                           ? undefined
@@ -883,16 +993,16 @@ function TableRowsPreview({
                                 tableName: preview.name,
                                 rowId,
                                 label: `${preview.name} #${rowId}`,
-                                description: `Row ${rowIndex + 1} from ${preview.name}`
+                                description: `${preview.name} 的第 ${rowIndex + 1} 行`
                               })
                       }
                       onOpenDetail={() =>
                         onOpenDetail({
-                          title: `${preview.name} row ${rowIndex + 1}`,
-                          description: `Complete row from ${preview.name}`,
+                          title: `${preview.name} 第 ${rowIndex + 1} 行`,
+                          description: `${preview.name} 的完整行数据`,
                           body: rowToMarkdown(row, preview.data.columns),
                           source: sourceFromRow(row, preview.data.columns),
-                          metadata: [{ label: "Columns", value: String(preview.data.columns.length) }]
+                          metadata: [{ label: "字段数", value: String(preview.data.columns.length) }]
                         })
                       }
                     />
@@ -905,7 +1015,7 @@ function TableRowsPreview({
                         onOpenDetail={() =>
                           onOpenDetail({
                             title: `${preview.name}.${column}`,
-                            description: `Row ${rowIndex + 1}`,
+                            description: `第 ${rowIndex + 1} 行`,
                             body: valueToMarkdown(row[column]),
                             source: sourceFromValue(row[column])
                           })
@@ -934,9 +1044,9 @@ function TableSchema({ detail }: { detail: TableDetail }) {
           <Table>
             <TableHeader className="bg-muted">
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Nullable</TableHead>
+                <TableHead>字段名</TableHead>
+                <TableHead>类型</TableHead>
+                <TableHead>可空</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -952,7 +1062,7 @@ function TableSchema({ detail }: { detail: TableDetail }) {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium">Indexes</h3>
+        <h3 className="text-sm font-medium">索引</h3>
         {detail.indexes.length > 0 ? (
           <div className="flex flex-col gap-2">
             {detail.indexes.map((index) => (
@@ -963,7 +1073,7 @@ function TableSchema({ detail }: { detail: TableDetail }) {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No indexes returned.</div>
+          <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">没有返回索引。</div>
         )}
       </div>
     </div>
@@ -1037,22 +1147,22 @@ function DeleteConfirmDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete row?</DialogTitle>
+          <DialogTitle>确认删除这行？</DialogTitle>
           <DialogDescription>
-            This will permanently delete {target?.label ?? "this row"} from {target?.tableName ?? "the table"}.
+            这会从 {target?.tableName ?? "当前表"} 中永久删除 {target?.label ?? "这行数据"}。
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
           <div className="font-medium text-foreground">ID: {target?.rowId ?? "-"}</div>
-          <div className="mt-1 line-clamp-3">{target?.description ?? "No row preview available."}</div>
+          <div className="mt-1 line-clamp-3">{target?.description ?? "没有可预览的行内容。"}</div>
         </div>
         <DialogFooter>
           <Button disabled={isDeleting} onClick={onCancel} type="button" variant="outline">
-            Cancel
+            取消
           </Button>
           <Button disabled={isDeleting} onClick={onConfirm} type="button" variant="destructive">
             {isDeleting ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
-            Delete
+            删除
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1078,7 +1188,7 @@ function DetailButton({
 
   return (
     <button
-      aria-label={`Open ${title}: ${description}`}
+      aria-label={`打开 ${title}: ${description}`}
       className={`block truncate text-left text-sm text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${maxWidthClassName}`}
       onClick={onOpenDetail}
       title={preview}
@@ -1090,16 +1200,16 @@ function DetailButton({
 }
 
 function SourceLink({ source }: { source?: string | null }) {
-  if (!source) return <span className="text-muted-foreground">none</span>;
+  if (!source) return <span className="text-muted-foreground">无来源</span>;
 
   if (!isHttpUrl(source)) {
     return <span className="block max-w-[200px] truncate text-muted-foreground">{source}</span>;
   }
 
   return (
-    <Button asChild size="sm" variant="ghost">
+    <Button asChild size="xs" variant="ghost">
       <a className="max-w-[200px] justify-start" href={source} rel="noreferrer" target="_blank">
-        <span className="truncate">Source</span>
+        <span className="truncate">来源</span>
         <ExternalLinkIcon data-icon="inline-end" />
       </a>
     </Button>
@@ -1117,8 +1227,8 @@ function MarkdownDetailDialog({
     <Dialog onOpenChange={onOpenChange} open={detail !== null}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{detail?.title ?? "Detail"}</DialogTitle>
-          <DialogDescription>{detail?.description ?? "Read-only detail view"}</DialogDescription>
+          <DialogTitle>{detail?.title ?? "详情"}</DialogTitle>
+          <DialogDescription>{detail?.description ?? "只读详情"}</DialogDescription>
         </DialogHeader>
         {detail?.metadata?.length ? (
           <div className="flex flex-wrap gap-2">
@@ -1132,7 +1242,7 @@ function MarkdownDetailDialog({
         {detail?.source && isHttpUrl(detail.source) ? (
           <Button asChild className="w-fit" size="sm" variant="outline">
             <a href={detail.source} rel="noreferrer" target="_blank">
-              Open source
+              打开来源
               <ExternalLinkIcon data-icon="inline-end" />
             </a>
           </Button>
@@ -1157,7 +1267,7 @@ function MarkdownDetailDialog({
 }
 
 function TagList({ tags }: { tags: string[] }) {
-  if (tags.length === 0) return <span className="text-muted-foreground">none</span>;
+  if (tags.length === 0) return <span className="text-muted-foreground">无标签</span>;
 
   return (
     <div className="flex max-w-[260px] flex-wrap gap-1">

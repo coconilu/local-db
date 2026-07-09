@@ -8,12 +8,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { DashboardView } from "@/types";
 
 const titles: Record<DashboardView, string> = {
-  overview: "Overview",
-  notes: "Notes",
-  "ai-news": "AI News",
-  "ai-coding-oss": "AI Coding OSS",
-  tables: "Tables",
-  query: "Read-only Query"
+  overview: "工作台总览",
+  notes: "笔记库",
+  "ai-news": "AI 信号流",
+  "ai-coding-oss": "开源项目雷达",
+  tables: "数据表",
+  query: "只读 SQL"
+};
+
+const searchPlaceholders: Record<DashboardView, string> = {
+  overview: "搜索笔记、AI 信号和开源项目",
+  notes: "搜索笔记内容、标签或来源",
+  "ai-news": "搜索 AI 资讯、来源或摘要",
+  "ai-coding-oss": "搜索项目名、定位、热度或标签",
+  tables: "搜索会作用在三类内容数据上",
+  query: "搜索会作用在三类内容数据上"
 };
 
 export function SiteHeader({
@@ -58,11 +67,11 @@ export function SiteHeader({
                   onSearch();
                 }
               }}
-              placeholder="Search notes, AI news, and AI coding OSS"
+              placeholder={searchPlaceholders[activeView]}
               value={query}
             />
           </div>
-          <Button aria-label="Refresh dashboard data" disabled={isLoading} onClick={onRefresh} size="icon" variant="outline">
+          <Button aria-label="刷新工作台数据" disabled={isLoading} onClick={onRefresh} size="icon" variant="outline">
             <RefreshCwIcon className={isLoading ? "animate-spin" : ""} />
           </Button>
         </div>

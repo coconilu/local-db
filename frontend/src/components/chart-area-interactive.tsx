@@ -16,15 +16,15 @@ type ActivityPoint = {
 
 const chartConfig = {
   notes: {
-    label: "Notes",
+    label: "笔记",
     color: "var(--chart-1)"
   },
   news: {
-    label: "AI News",
+    label: "AI 信号",
     color: "var(--chart-3)"
   },
   coding: {
-    label: "AI Coding OSS",
+    label: "开源项目",
     color: "var(--chart-2)"
   }
 } satisfies ChartConfig;
@@ -98,10 +98,10 @@ export function ChartAreaInteractive({
   return (
     <Card className="@container/card overflow-hidden">
       <CardHeader>
-        <CardTitle>Database activity</CardTitle>
+        <CardTitle>内容活动趋势</CardTitle>
         <CardDescription>
-          <span className="hidden @[540px]/card:block">Recent note, AI news, and AI coding rows grouped by day</span>
-          <span className="@[540px]/card:hidden">Recent row activity</span>
+          <span className="hidden @[540px]/card:block">按日期汇总笔记、AI 信号和开源项目日报</span>
+          <span className="@[540px]/card:hidden">近期内容活动</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup
@@ -113,19 +113,19 @@ export function ChartAreaInteractive({
             value={timeRange}
             variant="outline"
           >
-            <ToggleGroupItem value="7d">7d</ToggleGroupItem>
-            <ToggleGroupItem value="30d">30d</ToggleGroupItem>
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            <ToggleGroupItem value="7d">7 天</ToggleGroupItem>
+            <ToggleGroupItem value="30d">30 天</ToggleGroupItem>
+            <ToggleGroupItem value="all">全部</ToggleGroupItem>
           </ToggleGroup>
           <Select onValueChange={setTimeRange} value={timeRange}>
-            <SelectTrigger aria-label="Select chart range" className="flex w-32 @[767px]/card:hidden" size="sm">
-              <SelectValue placeholder="Range" />
+            <SelectTrigger aria-label="选择图表范围" className="flex w-32 @[767px]/card:hidden" size="sm">
+              <SelectValue placeholder="范围" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="7d">7 days</SelectItem>
-                <SelectItem value="30d">30 days</SelectItem>
-                <SelectItem value="all">All rows</SelectItem>
+                <SelectItem value="7d">7 天</SelectItem>
+                <SelectItem value="30d">30 天</SelectItem>
+                <SelectItem value="all">全部</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -186,14 +186,14 @@ export function ChartAreaInteractive({
           </ChartContainer>
         ) : (
           <div className="flex h-[260px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-            No dated rows yet. Insert notes, AI news, or AI coding rows to populate activity.
+            暂时没有带日期的内容活动。
           </div>
         )}
         <div className="mt-4 grid gap-2 text-sm text-muted-foreground md:grid-cols-4">
-          <div>Loaded notes: {notes.length}</div>
-          <div>Loaded AI signals: {news.length}</div>
-          <div>Loaded AI coding rows: {codingItems.length}</div>
-          <div>Estimated rows across tables: {estimatedRows}</div>
+          <div>已加载笔记：{notes.length}</div>
+          <div>已加载 AI 信号：{news.length}</div>
+          <div>已加载开源项目：{codingItems.length}</div>
+          <div>系统估算行数：{estimatedRows}</div>
         </div>
       </CardContent>
     </Card>
