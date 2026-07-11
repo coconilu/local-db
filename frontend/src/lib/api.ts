@@ -1,7 +1,6 @@
 import type {
   AiCodingOssItem,
   AiNewsItem,
-  DeleteRowResponse,
   HealthResponse,
   Note,
   QueryResult,
@@ -36,13 +35,6 @@ export const api = {
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),
   tableRows: (name: string, limit = 50) =>
     request<TableRowsResponse>(`/api/tables/${encodeURIComponent(name)}/rows?limit=${limit}`),
-  deleteRow: (tableName: string, rowId: number) =>
-    request<DeleteRowResponse>(
-      `/api/tables/${encodeURIComponent(tableName)}/rows/${encodeURIComponent(String(rowId))}`,
-      {
-        method: "DELETE"
-      }
-    ),
   readOnlyQuery: (sql: string) =>
     request<QueryResult>("/api/query/read-only", {
       method: "POST",

@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, EyeIcon, Loader2Icon, Table2Icon, Trash2Icon } from "lucide-react";
+import { ExternalLinkIcon, EyeIcon, Loader2Icon, Table2Icon } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
@@ -58,13 +57,6 @@ type TablePreview = {
   data: QueryResult;
 };
 
-type DeleteTarget = {
-  tableName: string;
-  rowId: number;
-  label: string;
-  description: string;
-};
-
 function toDataTab(view: DashboardView): DataTab {
   if (view === "ai-news" || view === "ai-coding-oss" || view === "tables") return view;
   return "notes";
@@ -79,22 +71,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-function deleteTargetKey(target: DeleteTarget): string {
-  return `${target.tableName}:${target.rowId}`;
-}
-
-function rowIdToNumber(value: unknown): number | null {
-  if (typeof value === "number" && Number.isInteger(value)) return value;
-  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
-  return null;
-}
-
 export function DataTable({
   codingItems,
   isLoading,
   news,
   notes,
-  onDataChanged,
   onViewChange,
   tables,
   view
@@ -103,14 +84,11 @@ export function DataTable({
   isLoading: boolean;
   news: AiNewsItem[];
   notes: Note[];
-  onDataChanged: () => Promise<void> | void;
   onViewChange: (view: DashboardView) => void;
   tables: TableSummary[];
   view: DashboardView;
 }) {
   const [detail, setDetail] = useState<MarkdownDetail | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
-  const [deletingKey, setDeletingKey] = useState("");
   const [tablePreview, setTablePreview] = useState<TablePreview | null>(null);
   const [loadingTable, setLoadingTable] = useState("");
   const [isResizingTableSheet, setIsResizingTableSheet] = useState(false);
@@ -204,38 +182,6 @@ export function DataTable({
     });
   }
 
-  async function refreshOpenTable(tableName: string) {
-    const nextPreview = await loadTablePreview(tableName);
-    setTablePreview((current) => (current?.name === tableName ? nextPreview : current));
-  }
-
-  async function confirmDelete() {
-    if (!deleteTarget) return;
-
-    const target = deleteTarget;
-    setDeletingKey(deleteTargetKey(target));
-    try {
-      await api.deleteRow(target.tableName, target.rowId);
-      toast.success("已删除", {
-        description: `${target.label} 已删除。`
-      });
-      setDeleteTarget(null);
-      setDetail(null);
-
-      const refreshes = [Promise.resolve(onDataChanged())];
-      if (tablePreview?.name === target.tableName) {
-        refreshes.push(refreshOpenTable(target.tableName));
-      }
-      await Promise.all(refreshes);
-    } catch (err) {
-      toast.error("删除失败", {
-        description: err instanceof Error ? err.message : `无法删除 ${target.label}。`
-      });
-    } finally {
-      setDeletingKey("");
-    }
-  }
-
   const resizeTableSheet = useCallback((clientX: number) => {
     const viewportWidth = window.innerWidth;
     const minWidth = Math.min(360, viewportWidth - 16);
@@ -302,12 +248,12 @@ export function DataTable({
   return (
     <>
       <Tabs
-        className="w-full flex-col justify-start gap-6"
+        className="w-full flex-col justify-start gap-5"
         onValueChange={(value) => onViewChange(toDashboardView(value))}
         value={activeTab}
       >
-        <div className="flex items-center justify-between px-4 lg:px-6">
-          <TabsList className="h-auto flex-wrap justify-start **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <TabsList className="h-auto w-fit max-w-full flex-wrap justify-start rounded-xl bg-muted/70 p-1 **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1">
             <TabsTrigger value="notes">
               笔记库 <Badge variant="secondary">{notes.length}</Badge>
             </TabsTrigger>
@@ -321,34 +267,24 @@ export function DataTable({
               数据表 <Badge variant="secondary">{tables.length}</Badge>
             </TabsTrigger>
           </TabsList>
-          <Badge className="hidden md:inline-flex" variant="outline">
-            删除需确认
+          <Badge className="w-fit" variant="outline">
+            只读浏览
           </Badge>
         </div>
 
-        <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="notes">
+        <TabsContent className="relative flex flex-col gap-4 overflow-auto" value="notes">
           <DataCard description="按内容、标签和来源回看可复用知识" title="笔记库">
-            <NotesTable
-              isLoading={isLoading}
-              notes={notes}
-              onOpenDetail={openNote}
-              onRequestDelete={setDeleteTarget}
-            />
+            <NotesTable isLoading={isLoading} notes={notes} onOpenDetail={openNote} />
           </DataCard>
         </TabsContent>
 
-        <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-news">
+        <TabsContent className="relative flex flex-col gap-4 overflow-auto" value="ai-news">
           <DataCard description="先看优先级和可信度，再打开原始来源" title="AI 信号流">
-            <NewsTable
-              isLoading={isLoading}
-              news={news}
-              onOpenDetail={openNewsItem}
-              onRequestDelete={setDeleteTarget}
-            />
+            <NewsTable isLoading={isLoading} news={news} onOpenDetail={openNewsItem} />
           </DataCard>
         </TabsContent>
 
-        <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="ai-coding-oss">
+        <TabsContent className="relative flex flex-col gap-4 overflow-auto" value="ai-coding-oss">
           <DataCard description="默认聚焦最新日报，也可以切换到全部项目" title="开源项目雷达">
             <AiCodingOssTable
               codingItems={codingItems}
@@ -358,7 +294,7 @@ export function DataTable({
           </DataCard>
         </TabsContent>
 
-        <TabsContent className="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6" value="tables">
+        <TabsContent className="relative flex flex-col gap-4 overflow-auto" value="tables">
           <DataCard description="系统工具：检查表结构、近期行和索引" title="数据表">
             <TablesTable
               isLoading={isLoading}
@@ -387,20 +323,14 @@ export function DataTable({
           />
           <SheetHeader>
             <SheetTitle>{tablePreview?.name ?? "表数据"}</SheetTitle>
-            <SheetDescription>预览近期行和 public schema 元数据。删除操作需要确认。</SheetDescription>
+            <SheetDescription>只读预览近期行和 public schema 元数据。</SheetDescription>
           </SheetHeader>
           {tablePreview ? (
-            <TablePreviewPanel onOpenDetail={setDetail} onRequestDelete={setDeleteTarget} preview={tablePreview} />
+            <TablePreviewPanel onOpenDetail={setDetail} preview={tablePreview} />
           ) : null}
         </SheetContent>
       </Sheet>
 
-      <DeleteConfirmDialog
-        isDeleting={Boolean(deletingKey)}
-        onCancel={() => setDeleteTarget(null)}
-        onConfirm={() => void confirmDelete()}
-        target={deleteTarget}
-      />
       <MarkdownDetailDialog detail={detail} onOpenChange={(open) => !open && setDetail(null)} />
     </>
   );
@@ -416,11 +346,11 @@ function DataCard({
   title: string;
 }) {
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1 rounded-lg border bg-card/80 px-4 py-3 shadow-xs md:flex-row md:items-end md:justify-between">
+    <section className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1 rounded-xl border bg-card px-5 py-4 shadow-xs md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
         </div>
       </div>
       {children}
@@ -475,13 +405,11 @@ function EmptyBlock({ label }: { label: string }) {
 function NotesTable({
   isLoading,
   notes,
-  onOpenDetail,
-  onRequestDelete
+  onOpenDetail
 }: {
   isLoading: boolean;
   notes: Note[];
   onOpenDetail: (note: Note) => void;
-  onRequestDelete: (target: DeleteTarget) => void;
 }) {
   const [activeTag, setActiveTag] = useState("all");
   const tagOptions = useMemo(() => {
@@ -556,16 +484,7 @@ function NotesTable({
                   </div>
                 </div>
                 <ActionButtons
-                  deleteLabel={`删除笔记 #${note.id}`}
                   detailLabel={`打开笔记 #${note.id}`}
-                  onDelete={() =>
-                    onRequestDelete({
-                      tableName: "notes",
-                      rowId: note.id,
-                      label: `笔记 #${note.id}`,
-                      description: valueToPreview(note.content) || "没有笔记内容"
-                    })
-                  }
                   onOpenDetail={() => onOpenDetail(note)}
                 />
               </div>
@@ -579,13 +498,11 @@ function NotesTable({
 function NewsTable({
   isLoading,
   news,
-  onOpenDetail,
-  onRequestDelete
+  onOpenDetail
 }: {
   isLoading: boolean;
   news: AiNewsItem[];
   onOpenDetail: (item: AiNewsItem) => void;
-  onRequestDelete: (target: DeleteTarget) => void;
 }) {
   const [priorityFilter, setPriorityFilter] = useState("all");
   const priorityOptions = useMemo(
@@ -673,16 +590,7 @@ function NewsTable({
                     </a>
                   </Button>
                   <ActionButtons
-                    deleteLabel={`删除 AI 信号 #${item.id}`}
                     detailLabel={`打开 AI 信号 #${item.id}`}
-                    onDelete={() =>
-                      onRequestDelete({
-                        tableName: "ai_news_items",
-                        rowId: item.id,
-                        label: `AI 信号 #${item.id}`,
-                        description: item.title
-                      })
-                    }
                     onOpenDetail={() => onOpenDetail(item)}
                   />
                 </div>
@@ -921,11 +829,9 @@ function TablesTable({
 
 function TablePreviewPanel({
   onOpenDetail,
-  onRequestDelete,
   preview
 }: {
   onOpenDetail: (detail: MarkdownDetail) => void;
-  onRequestDelete: (target: DeleteTarget) => void;
   preview: TablePreview;
 }) {
   return (
@@ -935,7 +841,7 @@ function TablePreviewPanel({
         <TabsTrigger value="schema">结构</TabsTrigger>
       </TabsList>
       <TabsContent className="mt-4 min-h-0" value="rows">
-        <TableRowsPreview onOpenDetail={onOpenDetail} onRequestDelete={onRequestDelete} preview={preview} />
+        <TableRowsPreview onOpenDetail={onOpenDetail} preview={preview} />
       </TabsContent>
       <TabsContent className="mt-4" value="schema">
         <TableSchema detail={preview.detail} />
@@ -946,11 +852,9 @@ function TablePreviewPanel({
 
 function TableRowsPreview({
   onOpenDetail,
-  onRequestDelete,
   preview
 }: {
   onOpenDetail: (detail: MarkdownDetail) => void;
-  onRequestDelete: (target: DeleteTarget) => void;
   preview: TablePreview;
 }) {
   if (preview.data.rows.length === 0) {
@@ -963,7 +867,7 @@ function TableRowsPreview({
         <table className="w-max min-w-full caption-bottom text-sm">
           <TableHeader className="sticky top-0 z-10 bg-muted">
             <TableRow>
-              <TableHead className="sticky left-0 w-24 bg-muted">Action</TableHead>
+              <TableHead className="sticky left-0 w-20 bg-muted">详情</TableHead>
               {preview.data.columns.map((column) => (
                 <TableHead className="whitespace-nowrap" key={column}>
                   {column}
@@ -973,29 +877,11 @@ function TableRowsPreview({
           </TableHeader>
           <TableBody>
             {preview.data.rows.map((row, rowIndex) => {
-              const rowId = rowIdToNumber(row.id);
               return (
                 <TableRow key={rowIndex}>
                   <TableCell className="sticky left-0 bg-popover align-top">
                     <ActionButtons
-                      deleteDisabled={rowId === null}
-                      deleteLabel={
-                        rowId === null
-                          ? `无法删除 ${preview.name} 第 ${rowIndex + 1} 行：没有数字 id`
-                          : `删除 ${preview.name} #${rowId}`
-                      }
                       detailLabel={`打开 ${preview.name} 第 ${rowIndex + 1} 行`}
-                      onDelete={
-                        rowId === null
-                          ? undefined
-                          : () =>
-                              onRequestDelete({
-                                tableName: preview.name,
-                                rowId,
-                                label: `${preview.name} #${rowId}`,
-                                description: `${preview.name} 的第 ${rowIndex + 1} 行`
-                              })
-                      }
                       onOpenDetail={() =>
                         onOpenDetail({
                           title: `${preview.name} 第 ${rowIndex + 1} 行`,
@@ -1081,16 +967,10 @@ function TableSchema({ detail }: { detail: TableDetail }) {
 }
 
 function ActionButtons({
-  deleteDisabled = false,
-  deleteLabel,
   detailLabel,
-  onDelete,
   onOpenDetail
 }: {
-  deleteDisabled?: boolean;
-  deleteLabel: string;
   detailLabel: string;
-  onDelete?: () => void;
   onOpenDetail: () => void;
 }) {
   return (
@@ -1108,65 +988,7 @@ function ActionButtons({
       >
         <EyeIcon />
       </Button>
-      <Button
-        aria-label={deleteLabel}
-        disabled={deleteDisabled || !onDelete}
-        onClick={(event) => {
-          event.stopPropagation();
-          if (!onDelete) return;
-          onDelete();
-        }}
-        size="icon-xs"
-        title={deleteLabel}
-        type="button"
-        variant="destructive"
-      >
-        <Trash2Icon />
-      </Button>
     </div>
-  );
-}
-
-function DeleteConfirmDialog({
-  isDeleting,
-  onCancel,
-  onConfirm,
-  target
-}: {
-  isDeleting: boolean;
-  onCancel: () => void;
-  onConfirm: () => void;
-  target: DeleteTarget | null;
-}) {
-  return (
-    <Dialog
-      onOpenChange={(open) => {
-        if (!open && !isDeleting) onCancel();
-      }}
-      open={target !== null}
-    >
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>确认删除这行？</DialogTitle>
-          <DialogDescription>
-            这会从 {target?.tableName ?? "当前表"} 中永久删除 {target?.label ?? "这行数据"}。
-          </DialogDescription>
-        </DialogHeader>
-        <div className="rounded-lg border bg-muted/40 p-3 text-sm text-muted-foreground">
-          <div className="font-medium text-foreground">ID: {target?.rowId ?? "-"}</div>
-          <div className="mt-1 line-clamp-3">{target?.description ?? "没有可预览的行内容。"}</div>
-        </div>
-        <DialogFooter>
-          <Button disabled={isDeleting} onClick={onCancel} type="button" variant="outline">
-            取消
-          </Button>
-          <Button disabled={isDeleting} onClick={onConfirm} type="button" variant="destructive">
-            {isDeleting ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
-            删除
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

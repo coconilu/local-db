@@ -1,18 +1,24 @@
 import { AlertCircleIcon } from "lucide-react";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 import { AppSidebar } from "@/components/app-sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/data-table";
-import { QueryConsole } from "@/components/query-console";
 import { SectionCards } from "@/components/section-cards";
 import { SiteHeader } from "@/components/site-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
 import { api } from "@/lib/api";
 import type { AiCodingOssItem, AiNewsItem, DashboardView, HealthResponse, Note, TableSummary } from "@/types";
+
+const ChartAreaInteractive = lazy(() =>
+  import("@/components/chart-area-interactive").then((module) => ({ default: module.ChartAreaInteractive }))
+);
+const DataTable = lazy(() => import("@/components/data-table").then((module) => ({ default: module.DataTable })));
+const QueryConsole = lazy(() =>
+  import("@/components/query-console").then((module) => ({ default: module.QueryConsole }))
+);
 
 type Counts = {
   coding: number;
@@ -27,6 +33,16 @@ const initialCounts: Counts = {
   news: 0,
   tables: 0
 };
+
+function DashboardPanelFallback() {
+  return (
+    <div className="flex min-h-64 flex-col gap-4 rounded-xl border bg-card p-5 shadow-xs" aria-label="正在加载内容">
+      <Skeleton className="h-5 w-40" />
+      <Skeleton className="h-4 w-64 max-w-full" />
+      <Skeleton className="min-h-40 w-full flex-1" />
+    </div>
+  );
+}
 
 export function App() {
   const [view, setView] = useState<DashboardView>("overview");
@@ -86,8 +102,8 @@ export function App() {
       <SidebarProvider
         style={
           {
-            "--sidebar-width": "18rem",
-            "--header-height": "3.25rem"
+            "--sidebar-width": "17.5rem",
+            "--header-height": "4.25rem"
           } as CSSProperties
         }
       >
@@ -104,10 +120,10 @@ export function App() {
             status={health?.status ?? "checking"}
           />
           <div className="flex flex-1 flex-col">
-            <div className="@container/main flex flex-1 flex-col gap-2">
-              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+            <div className="@container/main flex flex-1 flex-col">
+              <div className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 px-4 py-5 md:gap-7 md:px-6 md:py-7 lg:px-8">
                 {error ? (
-                  <div className="px-4 lg:px-6">
+                  <div>
                     <Alert variant="destructive">
                       <AlertCircleIcon />
                       <AlertTitle>Dashboard data could not be loaded</AlertTitle>
@@ -117,8 +133,10 @@ export function App() {
                 ) : null}
 
                 {view === "query" ? (
-                  <div className="px-4 lg:px-6">
-                    <QueryConsole />
+                  <div>
+                    <Suspense fallback={<DashboardPanelFallback />}>
+                      <QueryConsole />
+                    </Suspense>
                   </div>
                 ) : view === "overview" ? (
                   <>
@@ -129,33 +147,38 @@ export function App() {
                       isLoading={loading}
                       news={news}
                       notes={notes}
+                      onViewChange={setView}
                       status={health?.status ?? "checking"}
                     />
-                    <div className="px-4 lg:px-6">
-                      <ChartAreaInteractive codingItems={codingItems} news={news} notes={notes} tables={tables} />
+                    <div>
+                      <Suspense fallback={<DashboardPanelFallback />}>
+                        <ChartAreaInteractive codingItems={codingItems} news={news} notes={notes} tables={tables} />
+                      </Suspense>
                     </div>
+                    <Suspense fallback={<DashboardPanelFallback />}>
+                      <DataTable
+                        codingItems={codingItems}
+                        isLoading={loading}
+                        news={news}
+                        notes={notes}
+                        onViewChange={setView}
+                        tables={tables}
+                        view={view}
+                      />
+                    </Suspense>
+                  </>
+                ) : (
+                  <Suspense fallback={<DashboardPanelFallback />}>
                     <DataTable
                       codingItems={codingItems}
                       isLoading={loading}
                       news={news}
                       notes={notes}
-                      onDataChanged={() => fetchDashboard(query)}
                       onViewChange={setView}
                       tables={tables}
                       view={view}
                     />
-                  </>
-                ) : (
-                  <DataTable
-                    codingItems={codingItems}
-                    isLoading={loading}
-                    news={news}
-                    notes={notes}
-                    onDataChanged={() => fetchDashboard(query)}
-                    onViewChange={setView}
-                    tables={tables}
-                    view={view}
-                  />
+                  </Suspense>
                 )}
               </div>
             </div>
