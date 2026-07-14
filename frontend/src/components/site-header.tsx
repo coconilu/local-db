@@ -27,8 +27,10 @@ const searchPlaceholders: Record<DashboardView, string> = {
 
 export function SiteHeader({
   activeView,
+  accessToken,
   databaseName,
   isLoading,
+  onAccessTokenChange,
   onQueryChange,
   onRefresh,
   onSearch,
@@ -36,8 +38,10 @@ export function SiteHeader({
   status
 }: {
   activeView: DashboardView;
+  accessToken: string;
   databaseName: string;
   isLoading: boolean;
+  onAccessTokenChange: (value: string) => void;
   onQueryChange: (value: string) => void;
   onRefresh: () => void;
   onSearch: () => void;
@@ -64,6 +68,14 @@ export function SiteHeader({
         </div>
 
         <div className="ml-auto hidden w-full max-w-md items-center gap-2 md:flex">
+          <Input
+            aria-label="局域网访问令牌"
+            className="hidden h-10 w-36 rounded-xl bg-card shadow-xs lg:block"
+            onChange={(event) => onAccessTokenChange(event.currentTarget.value)}
+            placeholder="局域网令牌"
+            type="password"
+            value={accessToken}
+          />
           <div className="relative flex-1">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input

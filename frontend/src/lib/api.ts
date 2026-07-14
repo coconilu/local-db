@@ -9,10 +9,36 @@ import type {
   TableSummary
 } from "../types";
 
+const accessTokenStorageKey = "local-db-dashboard-access-token";
+
+function accessToken(): string {
+  if (typeof window === "undefined") return "";
+  return window.sessionStorage.getItem(accessTokenStorageKey)?.trim() ?? "";
+}
+
+export function loadDashboardAccessToken(): string {
+  return accessToken();
+}
+
+export function saveDashboardAccessToken(value: string): void {
+  if (typeof window === "undefined") return;
+  const normalized = value.trim();
+  if (normalized) {
+    window.sessionStorage.setItem(accessTokenStorageKey, normalized);
+  } else {
+    window.sessionStorage.removeItem(accessTokenStorageKey);
+  }
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+  const token = accessToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
   const response = await fetch(url, {
-    headers: { "Content-Type": "application/json" },
-    ...init
+    ...init,
+    headers
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));

@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/sonner";
-import { api } from "@/lib/api";
+import { api, loadDashboardAccessToken, saveDashboardAccessToken } from "@/lib/api";
 import type { AiCodingOssItem, AiNewsItem, DashboardView, HealthResponse, Note, TableSummary } from "@/types";
 
 const ChartAreaInteractive = lazy(() =>
@@ -52,6 +52,7 @@ export function App() {
   const [news, setNews] = useState<AiNewsItem[]>([]);
   const [tables, setTables] = useState<TableSummary[]>([]);
   const [query, setQuery] = useState("");
+  const [accessToken, setAccessToken] = useState(() => loadDashboardAccessToken());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -111,8 +112,13 @@ export function App() {
         <SidebarInset>
           <SiteHeader
             activeView={view}
+            accessToken={accessToken}
             databaseName={databaseName}
             isLoading={loading}
+            onAccessTokenChange={(value) => {
+              setAccessToken(value);
+              saveDashboardAccessToken(value);
+            }}
             onQueryChange={setQuery}
             onRefresh={() => void fetchDashboard(query)}
             onSearch={() => void fetchDashboard(query)}
