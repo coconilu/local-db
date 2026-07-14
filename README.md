@@ -70,6 +70,13 @@ docker compose up -d --build
 http://localhost:15173
 ```
 
+如需使用「开源项目雷达」里的“手动添加仓库”AI 分析功能，先复制 `.env.example` 为 `.env`，并填写 OpenAI 配置：
+
+```text
+OPENAI_API_KEY=你的密钥
+OPENAI_MODEL=你的模型名
+```
+
 验证数据库：
 
 ```bash
@@ -267,6 +274,12 @@ docker compose run --rm -T db-tools -c "select id, left(content, 120) as content
 ```bash
 docker compose run --rm -T db-tools -c "insert into ai_news_items (priority, category, signal_type, verification_status, title, source_name, source_url, summary, tags) values ('medium', 'tooling', 'blog', 'unverified', 'Example signal', 'Example', 'https://example.com', 'Example summary', array['ai','tooling']::text[]) returning id, title, created_at;"
 ```
+
+### 开源项目雷达
+
+默认按 GitHub 仓库合并所有日报记录，展示全部唯一项目及其提及次数。日报原始明细仍保存在 `ai_coding_oss_top5_items`，不会因聚合而被修改。
+
+“手动添加仓库”只接受公开 GitHub 仓库根地址。服务会读取仓库元数据和 README、调用 OpenAI 生成中文分析，然后写入 `ai_coding_oss_manual_projects`。同一仓库重复添加会更新分析内容并增加提及次数。
 
 ### Tables
 

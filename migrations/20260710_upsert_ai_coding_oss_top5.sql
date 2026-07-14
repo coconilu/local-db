@@ -1,0 +1,196 @@
+insert into ai_coding_oss_top5_items (
+  brief_date,
+  digest_run_at,
+  digest_rank,
+  repo_owner,
+  repo_name,
+  project_name,
+  repo_url,
+  positioning,
+  primary_language,
+  momentum_text,
+  recent_update_text,
+  recent_update_date,
+  labels,
+  brief_summary,
+  source_links,
+  metadata
+)
+values
+(
+  date '2026-07-10',
+  now(),
+  1,
+  'addyosmani',
+  'agent-skills',
+  'agent-skills',
+  'https://github.com/addyosmani/agent-skills',
+  '面向 AI 编码代理的生产级技能集合，强调工程规范、任务套路和可复用执行模板。',
+  'JavaScript',
+  'GitHub Trending 总榜，2,554 stars today；总星标 76.3k，Fork 8.2k',
+  'Release 0.6.3',
+  date '2026-07-03',
+  array['编码代理','工程规范','技能库']::text[],
+  '过去 24 小时，AI 编码开源热度继续从单体助手转向“代理系统化”：技能库、代码知识图谱、并行代理工作台与终端代理同步走强；高频 release 也说明这条赛道仍在快节奏迭代。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending', 'url', 'https://github.com/trending'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/addyosmani/agent-skills'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/addyosmani/agent-skills/releases/tag/0.6.3')
+  ),
+  jsonb_build_object(
+    'stars_today', 2554,
+    'stars_total', 76327,
+    'forks_total', 8197,
+    'trending_language', 'overall',
+    'ranking_basis', 'github_trending_daily_stars_then_direct_ai_coding_relevance_then_release_freshness',
+    'pushed_at', '2026-07-10T02:59:20Z',
+    'updated_at', '2026-07-10T09:03:14Z',
+    'release_tag', '0.6.3',
+    'release_published_at', '2026-07-03T05:42:25Z'
+  )
+),
+(
+  date '2026-07-10',
+  now(),
+  2,
+  'Graphify-Labs',
+  'graphify',
+  'graphify',
+  'https://github.com/Graphify-Labs/graphify',
+  '把代码、数据库、脚本和文档建成可查询知识图谱，给 Codex、Claude Code 等提供更高效上下文。',
+  'Python',
+  'GitHub Trending Python，909 stars today；总星标 81.5k，Fork 8.0k',
+  'Release v0.9.11',
+  date '2026-07-09',
+  array['代码图谱','长期上下文','MCP']::text[],
+  '过去 24 小时，AI 编码开源热度继续从单体助手转向“代理系统化”：技能库、代码知识图谱、并行代理工作台与终端代理同步走强；高频 release 也说明这条赛道仍在快节奏迭代。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Python', 'url', 'https://github.com/trending/python'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/Graphify-Labs/graphify'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/Graphify-Labs/graphify/releases/tag/v0.9.11')
+  ),
+  jsonb_build_object(
+    'stars_today', 909,
+    'stars_total', 81531,
+    'forks_total', 8022,
+    'trending_language', 'python',
+    'ranking_basis', 'github_trending_daily_stars_then_direct_ai_coding_relevance_then_release_freshness',
+    'pushed_at', '2026-07-10T01:11:38Z',
+    'updated_at', '2026-07-10T09:02:17Z',
+    'release_tag', 'v0.9.11',
+    'release_published_at', '2026-07-09T00:31:26Z'
+  )
+),
+(
+  date '2026-07-10',
+  now(),
+  3,
+  'stablyai',
+  'orca',
+  'orca',
+  'https://github.com/stablyai/orca',
+  '围绕并行代理协作构建的 ADE，可复用用户自己的模型订阅，把多代理编码工作台产品化。',
+  'TypeScript',
+  'GitHub Trending TypeScript，868 stars today；总星标 15.6k，Fork 1.2k',
+  'Release v1.4.131',
+  date '2026-07-09',
+  array['多代理','AI IDE','编码工作台']::text[],
+  '过去 24 小时，AI 编码开源热度继续从单体助手转向“代理系统化”：技能库、代码知识图谱、并行代理工作台与终端代理同步走强；高频 release 也说明这条赛道仍在快节奏迭代。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending TypeScript', 'url', 'https://github.com/trending/typescript'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/stablyai/orca'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/stablyai/orca/releases/tag/v1.4.131')
+  ),
+  jsonb_build_object(
+    'stars_today', 868,
+    'stars_total', 15561,
+    'forks_total', 1217,
+    'trending_language', 'typescript',
+    'ranking_basis', 'github_trending_daily_stars_then_direct_ai_coding_relevance_then_release_freshness',
+    'pushed_at', '2026-07-10T09:01:26Z',
+    'updated_at', '2026-07-10T09:03:28Z',
+    'release_tag', 'v1.4.131',
+    'release_published_at', '2026-07-09T23:07:39Z'
+  )
+),
+(
+  date '2026-07-10',
+  now(),
+  4,
+  'openai',
+  'codex',
+  'codex',
+  'https://github.com/openai/codex',
+  '轻量级终端编码代理，直接面向仓库读写、命令执行与端到端开发任务闭环。',
+  'Rust',
+  'GitHub Trending Rust，299 stars today；总星标 96.8k，Fork 14.4k',
+  'Release 0.144.1',
+  date '2026-07-09',
+  array['终端代理','自动编码','CLI']::text[],
+  '过去 24 小时，AI 编码开源热度继续从单体助手转向“代理系统化”：技能库、代码知识图谱、并行代理工作台与终端代理同步走强；高频 release 也说明这条赛道仍在快节奏迭代。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Rust', 'url', 'https://github.com/trending/rust'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/openai/codex'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/openai/codex/releases/tag/rust-v0.144.1')
+  ),
+  jsonb_build_object(
+    'stars_today', 299,
+    'stars_total', 96843,
+    'forks_total', 14372,
+    'trending_language', 'rust',
+    'ranking_basis', 'github_trending_daily_stars_then_direct_ai_coding_relevance_then_release_freshness',
+    'pushed_at', '2026-07-10T08:34:34Z',
+    'updated_at', '2026-07-10T09:03:27Z',
+    'release_tag', 'rust-v0.144.1',
+    'release_published_at', '2026-07-09T23:02:40Z'
+  )
+),
+(
+  date '2026-07-10',
+  now(),
+  5,
+  'can1357',
+  'oh-my-pi',
+  'oh-my-pi',
+  'https://github.com/can1357/oh-my-pi',
+  '强调哈希锚定编辑、LSP、浏览器和子代理能力的终端 AI 编码代理，偏重执行链路完整性。',
+  'TypeScript',
+  'GitHub Trending TypeScript，249 stars today；总星标 17.1k，Fork 1.5k',
+  'Release v16.3.15',
+  date '2026-07-09',
+  array['终端代理','子代理','LSP']::text[],
+  '过去 24 小时，AI 编码开源热度继续从单体助手转向“代理系统化”：技能库、代码知识图谱、并行代理工作台与终端代理同步走强；高频 release 也说明这条赛道仍在快节奏迭代。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending TypeScript', 'url', 'https://github.com/trending/typescript'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/can1357/oh-my-pi'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/can1357/oh-my-pi/releases/tag/v16.3.15')
+  ),
+  jsonb_build_object(
+    'stars_today', 249,
+    'stars_total', 17095,
+    'forks_total', 1524,
+    'trending_language', 'typescript',
+    'ranking_basis', 'github_trending_daily_stars_then_direct_ai_coding_relevance_then_release_freshness',
+    'pushed_at', '2026-07-10T08:56:39Z',
+    'updated_at', '2026-07-10T09:04:28Z',
+    'release_tag', 'v16.3.15',
+    'release_published_at', '2026-07-09T21:02:24Z'
+  )
+)
+on conflict (brief_date, digest_rank) do update
+set
+  digest_run_at = excluded.digest_run_at,
+  repo_owner = excluded.repo_owner,
+  repo_name = excluded.repo_name,
+  project_name = excluded.project_name,
+  repo_url = excluded.repo_url,
+  positioning = excluded.positioning,
+  primary_language = excluded.primary_language,
+  momentum_text = excluded.momentum_text,
+  recent_update_text = excluded.recent_update_text,
+  recent_update_date = excluded.recent_update_date,
+  labels = excluded.labels,
+  brief_summary = excluded.brief_summary,
+  source_links = excluded.source_links,
+  metadata = excluded.metadata,
+  updated_at = now();

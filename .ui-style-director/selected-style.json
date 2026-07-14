@@ -1,0 +1,115 @@
+{
+  "selectedAt": "2026-07-11T07:41:59.063Z",
+  "brief": "重构现有 Local DB 中文仪表盘 UI。项目是本地优先的 PostgreSQL 知识与信号工作台，React 18 + Vite + Tailwind CSS v4 + shadcn/radix-nova。核心导航包括工作台总览、笔记库、AI 信号流、开源项目雷达、数据表、只读 SQL；主要用户是本人及可信局域网中的技术用户。保留现有信息架构、Docker Compose 运行语境、只读浏览和 CLI 写入边界；采用友好型知识平台方向，强化快速扫描、内容检索、知识阅读、数据状态、表格可读性和详情阅读。桌面优先但需响应式，中文界面，中高信息密度，保持技术专业感，避免过度柔软、泛化企业后台和过度霓虹赛博感。",
+  "style": {
+    "id": "learning-platform-friendly",
+    "name": "Learning Platform Friendly",
+    "sourceProvider": "awesome-design-md",
+    "sourceSlug": "education-platform",
+    "family": "education",
+    "pageTypes": [
+      "landing",
+      "product-site",
+      "dashboard"
+    ],
+    "audiences": [
+      "students",
+      "teachers",
+      "parents",
+      "teams"
+    ],
+    "goals": [
+      "signup",
+      "explain-product",
+      "daily-operation"
+    ],
+    "density": "medium",
+    "tones": [
+      "clear",
+      "supportive",
+      "approachable",
+      "organized"
+    ],
+    "keywords": [
+      "education",
+      "learning",
+      "course",
+      "student",
+      "teacher",
+      "training",
+      "knowledge",
+      "study"
+    ],
+    "bestFor": [
+      "Learning products",
+      "course platforms",
+      "training dashboards",
+      "knowledge tools"
+    ],
+    "avoidFor": [
+      "High-finance or security procurement pages"
+    ],
+    "firstViewport": "Outcome-oriented headline, product/course preview, friendly progress or lesson state.",
+    "layoutRules": [
+      "Show progress, lessons, outcomes, and guidance.",
+      "Avoid childish visuals unless the audience is children."
+    ],
+    "palette": [
+      "light neutral",
+      "supportive accent",
+      "soft semantic colors"
+    ],
+    "typography": "Warm but structured hierarchy with readable learning content.",
+    "componentKits": [
+      "shadcn-ui",
+      "origin-ui"
+    ],
+    "risks": [
+      "Can become too soft for professional training unless density is tuned."
+    ]
+  },
+  "visual": {
+    "styleId": "learning-platform-friendly",
+    "variant": "learning",
+    "theme": {
+      "canvas": "#F5F7FF",
+      "surface": "#FFFFFF",
+      "surfaceAlt": "#E8ECFF",
+      "text": "#20233A",
+      "muted": "#6B7280",
+      "accent": "#4F46E5",
+      "border": "#D7DCF2"
+    },
+    "references": [
+      {
+        "provider": "awesome-design-md",
+        "slug": "notion",
+        "label": "Notion",
+        "role": "friendly knowledge organization",
+        "pageUrl": "https://getdesign.md/notion/design-md",
+        "lightPreviewUrl": "https://getdesign.md/design-md/notion/preview.html",
+        "darkPreviewUrl": "https://getdesign.md/design-md/notion/preview-dark.html"
+      },
+      {
+        "provider": "awesome-design-md",
+        "slug": "miro",
+        "label": "Miro",
+        "role": "approachable collaborative color",
+        "pageUrl": "https://getdesign.md/miro/design-md",
+        "lightPreviewUrl": "https://getdesign.md/design-md/miro/preview.html",
+        "darkPreviewUrl": "https://getdesign.md/design-md/miro/preview-dark.html"
+      },
+      {
+        "provider": "awesome-design-md",
+        "slug": "airtable",
+        "label": "Airtable",
+        "role": "structured but friendly progress views",
+        "pageUrl": "https://getdesign.md/airtable/design-md",
+        "lightPreviewUrl": "https://getdesign.md/design-md/airtable/preview.html",
+        "darkPreviewUrl": "https://getdesign.md/design-md/airtable/preview-dark.html"
+      }
+    ],
+    "previewCardPath": "C:\\Users\\admin\\.codex\\tools\\ai-ui-style-director\\catalog\\previews\\learning-platform-friendly.svg",
+    "previewCardMarkdownPath": "C:/Users/admin/.codex/tools/ai-ui-style-director/catalog/previews/learning-platform-friendly.svg"
+  }
+}

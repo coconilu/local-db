@@ -1,0 +1,35 @@
+{
+  "generatedBy": "ai-ui-style-director",
+  "sourceProvider": "awesome-design-md",
+  "sourceSlug": "education-platform",
+  "visualReferences": [
+    {
+      "provider": "awesome-design-md",
+      "slug": "notion",
+      "label": "Notion",
+      "role": "friendly knowledge organization",
+      "pageUrl": "https://getdesign.md/notion/design-md",
+      "lightPreviewUrl": "https://getdesign.md/design-md/notion/preview.html",
+      "darkPreviewUrl": "https://getdesign.md/design-md/notion/preview-dark.html"
+    },
+    {
+      "provider": "awesome-design-md",
+      "slug": "miro",
+      "label": "Miro",
+      "role": "approachable collaborative color",
+      "pageUrl": "https://getdesign.md/miro/design-md",
+      "lightPreviewUrl": "https://getdesign.md/design-md/miro/preview.html",
+      "darkPreviewUrl": "https://getdesign.md/design-md/miro/preview-dark.html"
+    },
+    {
+      "provider": "awesome-design-md",
+      "slug": "airtable",
+      "label": "Airtable",
+      "role": "structured but friendly progress views",
+      "pageUrl": "https://getdesign.md/airtable/design-md",
+      "lightPreviewUrl": "https://getdesign.md/design-md/airtable/preview.html",
+      "darkPreviewUrl": "https://getdesign.md/design-md/airtable/preview-dark.html"
+    }
+  ],
+  "brandSafety": "Use as inspiration only; do not copy proprietary brand assets or exact layouts."
+}

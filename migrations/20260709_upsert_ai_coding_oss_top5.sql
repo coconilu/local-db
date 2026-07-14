@@ -1,0 +1,196 @@
+insert into ai_coding_oss_top5_items (
+  brief_date,
+  digest_run_at,
+  digest_rank,
+  repo_owner,
+  repo_name,
+  project_name,
+  repo_url,
+  positioning,
+  primary_language,
+  momentum_text,
+  recent_update_text,
+  recent_update_date,
+  labels,
+  brief_summary,
+  source_links,
+  metadata
+)
+values
+(
+  date '2026-07-09',
+  now(),
+  1,
+  'microsoft',
+  'SkillOpt',
+  'SkillOpt',
+  'https://github.com/microsoft/SkillOpt',
+  '把 LLM 代理的轨迹经验蒸馏成可复用自然语言技能包，面向长期迭代的编码代理工作流。',
+  'Python',
+  'GitHub Trending Python，275 stars today；总星标 11.8k，Fork 1.1k',
+  'Release v0.2.0',
+  date '2026-07-02',
+  array['技能优化','编码代理','Agent 模板']::text[],
+  '过去 24 小时的 AI 编码开源动量继续向“代理技能化”集中：SkillOpt、Claude Code 与 claude-skills 包揽前三；Goose 与 Cline 则说明终端和 IDE 代理仍在高频迭代，且今天都能看到明确更新信号。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Python', 'url', 'https://github.com/trending/python'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/microsoft/SkillOpt'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/microsoft/SkillOpt/releases/tag/v0.2.0')
+  ),
+  jsonb_build_object(
+    'stars_today', 275,
+    'stars_total', 11823,
+    'forks_total', 1087,
+    'trending_language', 'python',
+    'ranking_basis', 'github_trending_daily_stars_then_total_stars_then_release_freshness',
+    'pushed_at', '2026-07-02T14:11:34Z',
+    'updated_at', '2026-07-09T09:01:12Z',
+    'release_tag', 'v0.2.0',
+    'release_published_at', '2026-07-02T14:11:43Z'
+  )
+),
+(
+  date '2026-07-09',
+  now(),
+  2,
+  'anthropics',
+  'claude-code',
+  'claude-code',
+  'https://github.com/anthropics/claude-code',
+  '终端里的 agentic coding 工具，可直接读写仓库、执行常规开发任务并处理 Git 工作流。',
+  'Python',
+  'GitHub Trending Python，215 stars today；总星标 137.0k，Fork 22.0k',
+  'Release v2.1.205',
+  date '2026-07-08',
+  array['终端代理','Claude Code','Git 工作流']::text[],
+  '过去 24 小时的 AI 编码开源动量继续向“代理技能化”集中：SkillOpt、Claude Code 与 claude-skills 包揽前三；Goose 与 Cline 则说明终端和 IDE 代理仍在高频迭代，且今天都能看到明确更新信号。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Python', 'url', 'https://github.com/trending/python'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/anthropics/claude-code'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/anthropics/claude-code/releases/tag/v2.1.205')
+  ),
+  jsonb_build_object(
+    'stars_today', 215,
+    'stars_total', 136963,
+    'forks_total', 22005,
+    'trending_language', 'python',
+    'ranking_basis', 'github_trending_daily_stars_then_total_stars_then_release_freshness',
+    'pushed_at', '2026-07-08T21:22:06Z',
+    'updated_at', '2026-07-09T09:02:12Z',
+    'release_tag', 'v2.1.205',
+    'release_published_at', '2026-07-08T21:22:06Z'
+  )
+),
+(
+  date '2026-07-09',
+  now(),
+  3,
+  'alirezarezvani',
+  'claude-skills',
+  'claude-skills',
+  'https://github.com/alirezarezvani/claude-skills',
+  '为 Claude Code、Codex、Cursor 等编码代理提供大规模技能、命令与插件素材库。',
+  'Python',
+  'GitHub Trending Python，177 stars today；总星标 21.8k，Fork 2.9k',
+  '最近推送',
+  date '2026-07-08',
+  array['技能库','多代理适配','工程规范']::text[],
+  '过去 24 小时的 AI 编码开源动量继续向“代理技能化”集中：SkillOpt、Claude Code 与 claude-skills 包揽前三；Goose 与 Cline 则说明终端和 IDE 代理仍在高频迭代，且今天都能看到明确更新信号。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Python', 'url', 'https://github.com/trending/python'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/alirezarezvani/claude-skills'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/alirezarezvani/claude-skills/releases/tag/v2.9.0')
+  ),
+  jsonb_build_object(
+    'stars_today', 177,
+    'stars_total', 21772,
+    'forks_total', 2913,
+    'trending_language', 'python',
+    'ranking_basis', 'github_trending_daily_stars_then_total_stars_then_release_freshness',
+    'pushed_at', '2026-07-08T06:41:33Z',
+    'updated_at', '2026-07-09T08:53:48Z',
+    'release_tag', 'v2.9.0',
+    'release_published_at', '2026-05-28T21:22:23Z'
+  )
+),
+(
+  date '2026-07-09',
+  now(),
+  4,
+  'aaif-goose',
+  'goose',
+  'goose',
+  'https://github.com/aaif-goose/goose',
+  '可安装、执行、编辑并测试代码的开源 AI 代理，强调对任意 LLM 的可扩展执行链路。',
+  'Rust',
+  'GitHub Trending Rust，84 stars today；总星标 50.9k，Fork 5.5k',
+  '最近推送',
+  date '2026-07-09',
+  array['编码代理','自动测试','多模型']::text[],
+  '过去 24 小时的 AI 编码开源动量继续向“代理技能化”集中：SkillOpt、Claude Code 与 claude-skills 包揽前三；Goose 与 Cline 则说明终端和 IDE 代理仍在高频迭代，且今天都能看到明确更新信号。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending Rust', 'url', 'https://github.com/trending/rust'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/aaif-goose/goose'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/aaif-goose/goose/releases/tag/v1.41.0')
+  ),
+  jsonb_build_object(
+    'stars_today', 84,
+    'stars_total', 50885,
+    'forks_total', 5494,
+    'trending_language', 'rust',
+    'ranking_basis', 'github_trending_daily_stars_then_total_stars_then_release_freshness',
+    'pushed_at', '2026-07-09T05:11:03Z',
+    'updated_at', '2026-07-09T09:02:15Z',
+    'release_tag', 'v1.41.0',
+    'release_published_at', '2026-07-03T00:26:40Z'
+  )
+),
+(
+  date '2026-07-09',
+  now(),
+  5,
+  'cline',
+  'cline',
+  'cline',
+  'https://github.com/cline/cline',
+  '以 SDK、IDE 扩展和 CLI 三种形态提供自治编码代理，覆盖编辑器内外的一体化调用。',
+  'TypeScript',
+  'GitHub Trending TypeScript，51 stars today；总星标 64.5k，Fork 6.9k',
+  'Release cli-v3.0.39',
+  date '2026-07-09',
+  array['IDE 代理','编码代理','CLI/SDK']::text[],
+  '过去 24 小时的 AI 编码开源动量继续向“代理技能化”集中：SkillOpt、Claude Code 与 claude-skills 包揽前三；Goose 与 Cline 则说明终端和 IDE 代理仍在高频迭代，且今天都能看到明确更新信号。',
+  jsonb_build_array(
+    jsonb_build_object('label', 'Trending TypeScript', 'url', 'https://github.com/trending/typescript'),
+    jsonb_build_object('label', 'Repo', 'url', 'https://github.com/cline/cline'),
+    jsonb_build_object('label', 'Release', 'url', 'https://github.com/cline/cline/releases/tag/cli-v3.0.39')
+  ),
+  jsonb_build_object(
+    'stars_today', 51,
+    'stars_total', 64473,
+    'forks_total', 6877,
+    'trending_language', 'typescript',
+    'ranking_basis', 'github_trending_daily_stars_then_total_stars_then_release_freshness',
+    'pushed_at', '2026-07-09T08:48:59Z',
+    'updated_at', '2026-07-09T08:42:18Z',
+    'release_tag', 'cli-v3.0.39',
+    'release_published_at', '2026-07-09T04:42:44Z'
+  )
+)
+on conflict (brief_date, digest_rank) do update
+set
+  digest_run_at = excluded.digest_run_at,
+  repo_owner = excluded.repo_owner,
+  repo_name = excluded.repo_name,
+  project_name = excluded.project_name,
+  repo_url = excluded.repo_url,
+  positioning = excluded.positioning,
+  primary_language = excluded.primary_language,
+  momentum_text = excluded.momentum_text,
+  recent_update_text = excluded.recent_update_text,
+  recent_update_date = excluded.recent_update_date,
+  labels = excluded.labels,
+  brief_summary = excluded.brief_summary,
+  source_links = excluded.source_links,
+  metadata = excluded.metadata,
+  updated_at = now();

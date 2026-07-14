@@ -27,6 +27,9 @@ services:
       - ./migrations/003_create_experience_lessons.sql:/init/004_experience_lessons.sql:ro
       - ./migrations/004_seed_experience_lesson_hvigor_preview_port.sql:/init/005_seed_experience_lesson_hvigor_preview_port.sql:ro
       - ./migrations/005_add_notes_source.sql:/init/006_add_notes_source.sql:ro
+      - ./migrations/006_create_ai_coding_oss_top5_items.sql:/init/007_create_ai_coding_oss_top5_items.sql:ro
+      - ./migrations/007_seed_ai_coding_oss_top5_recent_week.sql:/init/008_seed_ai_coding_oss_top5_recent_week.sql:ro
+      - ./migrations/015_create_ai_coding_oss_manual_projects.sql:/init/009_ai_coding_oss_manual_projects.sql:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -39,6 +42,9 @@ services:
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/004_experience_lessons.sql
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/005_seed_experience_lesson_hvigor_preview_port.sql
         psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/006_add_notes_source.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/007_create_ai_coding_oss_top5_items.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/008_seed_ai_coding_oss_top5_recent_week.sql
+        psql -h postgres -U app -d localdb -v ON_ERROR_STOP=1 -f /init/009_ai_coding_oss_manual_projects.sql
 
   db-tools:
     image: postgres:17
@@ -71,6 +77,8 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://app:adsl%401234@postgres:5432/localdb
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
 
   dashboard-web:
     build: ./frontend

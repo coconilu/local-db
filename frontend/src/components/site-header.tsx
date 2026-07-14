@@ -8,11 +8,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import type { DashboardView } from "@/types";
 
 const titles: Record<DashboardView, string> = {
-  overview: "Overview",
-  notes: "Notes",
-  "ai-news": "AI News",
-  tables: "Tables",
-  query: "Read-only Query"
+  overview: "知识工作台",
+  notes: "笔记库",
+  "ai-news": "AI 信号流",
+  "ai-coding-oss": "开源项目雷达",
+  tables: "数据表",
+  query: "只读 SQL"
+};
+
+const searchPlaceholders: Record<DashboardView, string> = {
+  overview: "搜索笔记、AI 信号和开源项目",
+  notes: "搜索笔记内容、标签或来源",
+  "ai-news": "搜索 AI 资讯、来源或摘要",
+  "ai-coding-oss": "搜索项目名、定位、热度或标签",
+  tables: "搜索知识内容",
+  query: "搜索知识内容"
 };
 
 export function SiteHeader({
@@ -34,37 +44,47 @@ export function SiteHeader({
   query: string;
   status: string;
 }) {
+  const title = titles[activeView];
+
   return (
-    <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
-      <div className="flex w-full items-center gap-2 px-4 lg:px-6">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <h1 className="truncate text-base font-medium">{titles[activeView]}</h1>
-          <Badge variant="outline" className="hidden gap-1.5 text-muted-foreground md:inline-flex">
-            <DatabaseIcon />
+    <header className="sticky top-0 z-20 flex h-(--header-height) shrink-0 items-center border-b bg-background/90 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-[1480px] items-center gap-3 px-4 md:px-6 lg:px-8">
+        <SidebarTrigger aria-label="切换侧栏" className="-ml-1" />
+        <Separator className="mx-1 data-[orientation=vertical]:h-5" orientation="vertical" />
+        <div className="flex min-w-0 items-center gap-3">
+          {activeView === "overview" ? (
+            <span className="truncate text-sm font-semibold md:text-base">{title}</span>
+          ) : (
+            <h1 className="truncate text-sm font-semibold md:text-base">{title}</h1>
+          )}
+          <Badge className="hidden gap-1.5 lg:inline-flex" variant="secondary">
+            <span className="size-1.5 rounded-full bg-chart-1" />
             {status} · {databaseName}
           </Badge>
         </div>
-        <div className="hidden w-full max-w-sm items-center gap-2 md:flex">
+
+        <div className="ml-auto hidden w-full max-w-md items-center gap-2 md:flex">
           <div className="relative flex-1">
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-8"
+              className="h-10 rounded-xl bg-card pl-9 shadow-xs"
               onChange={(event) => onQueryChange(event.currentTarget.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  onSearch();
-                }
+                if (event.key === "Enter") onSearch();
               }}
-              placeholder="Search notes and AI news"
+              placeholder={searchPlaceholders[activeView]}
               value={query}
             />
           </div>
-          <Button aria-label="Refresh dashboard data" disabled={isLoading} onClick={onRefresh} size="icon" variant="outline">
-            <RefreshCwIcon className={isLoading ? "animate-spin" : ""} />
+          <Button aria-label="刷新工作台数据" disabled={isLoading} onClick={onRefresh} size="icon" variant="outline">
+            <RefreshCwIcon className={isLoading ? "animate-spin" : undefined} />
           </Button>
         </div>
+
+        <Badge className="ml-auto gap-1.5 md:hidden" variant="outline">
+          <DatabaseIcon />
+          {databaseName}
+        </Badge>
       </div>
     </header>
   );

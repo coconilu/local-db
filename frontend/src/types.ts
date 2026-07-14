@@ -43,6 +43,30 @@ export type AiNewsItem = {
   updated_at: string;
 };
 
+export type AiCodingOssItem = {
+  id: number;
+  normalized_repo_url: string;
+  repo_owner: string;
+  repo_name: string;
+  project_name: string;
+  repo_url: string;
+  positioning: string;
+  primary_language?: string | null;
+  momentum_text: string;
+  recent_update_text?: string | null;
+  recent_update_date?: string | null;
+  labels: string[];
+  brief_summary?: string | null;
+  source_links: string[];
+  metadata: Record<string, unknown>;
+  first_mentioned_at: string;
+  last_mentioned_at: string;
+  mention_count: number;
+  digest_rank?: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type TableSummary = {
   table_name: string;
   estimated_rows: number;
@@ -73,10 +97,4 @@ export type QueryResult = {
 
 export type TableRowsResponse = QueryResult;
 
-export type DeleteRowResponse = {
-  deleted: boolean;
-  table: string;
-  id: number;
-};
-
-export type DashboardView = "overview" | "notes" | "ai-news" | "tables" | "query";
+export type DashboardView = "overview" | "notes" | "ai-news" | "ai-coding-oss" | "tables" | "query";

@@ -1,6 +1,6 @@
 import type {
+  AiCodingOssItem,
   AiNewsItem,
-  DeleteRowResponse,
   HealthResponse,
   Note,
   QueryResult,
@@ -27,17 +27,19 @@ export const api = {
     request<{ items: Note[] }>(`/api/notes?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
   aiNews: (query = "") =>
     request<{ items: AiNewsItem[] }>(`/api/ai-news?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
+  aiCodingOss: (query = "") =>
+    request<{ items: AiCodingOssItem[] }>(
+      `/api/ai-coding-oss?limit=500${query ? `&query=${encodeURIComponent(query)}` : ""}`
+    ),
+  addManualAiCodingOss: (repoUrl: string) =>
+    request<{ item: AiCodingOssItem; manual_mention_count: number }>("/api/ai-coding-oss/manual", {
+      method: "POST",
+      body: JSON.stringify({ repo_url: repoUrl })
+    }),
   tables: () => request<{ items: TableSummary[] }>("/api/tables"),
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),
   tableRows: (name: string, limit = 50) =>
     request<TableRowsResponse>(`/api/tables/${encodeURIComponent(name)}/rows?limit=${limit}`),
-  deleteRow: (tableName: string, rowId: number) =>
-    request<DeleteRowResponse>(
-      `/api/tables/${encodeURIComponent(tableName)}/rows/${encodeURIComponent(String(rowId))}`,
-      {
-        method: "DELETE"
-      }
-    ),
   readOnlyQuery: (sql: string) =>
     request<QueryResult>("/api/query/read-only", {
       method: "POST",
@@ -52,5 +54,14 @@ export function formatDate(value?: string | null): string {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit"
+  }).format(new Date(value));
+}
+
+export function formatDateOnly(value?: string | null): string {
+  if (!value) return "No date";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric"
   }).format(new Date(value));
 }

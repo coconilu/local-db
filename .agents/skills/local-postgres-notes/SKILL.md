@@ -12,13 +12,13 @@ Use the project's Docker Compose services to operate the local PostgreSQL databa
 Before running commands, switch to the cloned project workspace:
 
 ```powershell
-Set-Location -LiteralPath '__LOCAL_DB_REPO_PATH__'
+Set-Location -LiteralPath 'C:/Users/admin/Documents/GitHub/local-db'
 ```
 
 On macOS or Linux, use the equivalent shell command:
 
 ```bash
-cd '__LOCAL_DB_REPO_PATH__'
+cd 'C:/Users/admin/Documents/GitHub/local-db'
 ```
 
 ## Startup
