@@ -57,10 +57,10 @@ export function SectionCards({
   const totalKnowledge = counts.notes + counts.news + counts.coding;
   const recommendationTitle = latestProject?.project_name ?? latestNews?.title ?? "等待新的知识信号";
   const recommendationBody = latestProject
-    ? previewText(latestProject.positioning, "查看最新开源项目日报")
-    : previewText(latestNews?.summary, "新的 AI 信号和项目日报会在这里出现");
+    ? previewText(latestProject.positioning, "查看最近提及的开源项目")
+    : previewText(latestNews?.summary, "新的 AI 信号和项目观察会在这里出现");
   const recommendationMeta = latestProject
-    ? `${formatDateOnly(latestProject.brief_date)} · 排名 #${latestProject.digest_rank}`
+    ? `${formatDateOnly(latestProject.last_mentioned_at)} · 提及 ${latestProject.mention_count} 次`
     : latestNews
       ? `${latestNews.source_name} · ${formatDate(latestNews.updated_at)}`
       : "尚无推荐内容";
@@ -89,7 +89,7 @@ export function SectionCards({
     },
     {
       count: counts.coding,
-      description: latestProject ? `${formatDateOnly(latestProject.brief_date)} 最新项目` : "跟踪每日 Top 5 开源项目",
+      description: latestProject ? `${formatDateOnly(latestProject.last_mentioned_at)} 最近提及` : "汇总开源项目与提及次数",
       icon: BotIcon,
       label: "开源项目雷达",
       view: "ai-coding-oss"

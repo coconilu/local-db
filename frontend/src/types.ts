@@ -45,9 +45,7 @@ export type AiNewsItem = {
 
 export type AiCodingOssItem = {
   id: number;
-  brief_date: string;
-  digest_run_at: string;
-  digest_rank: number;
+  normalized_repo_url: string;
   repo_owner: string;
   repo_name: string;
   project_name: string;
@@ -61,6 +59,10 @@ export type AiCodingOssItem = {
   brief_summary?: string | null;
   source_links: string[];
   metadata: Record<string, unknown>;
+  first_mentioned_at: string;
+  last_mentioned_at: string;
+  mention_count: number;
+  digest_rank?: number | null;
   created_at: string;
   updated_at: string;
 };

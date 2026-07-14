@@ -43,7 +43,7 @@ const navItems: Array<{
   { title: "工作台总览", view: "overview", icon: LayoutDashboardIcon },
   { description: "沉淀与标签", title: "笔记库", view: "notes", icon: FileTextIcon, unit: "条" },
   { description: "资讯与核验", title: "AI 信号流", view: "ai-news", icon: NewspaperIcon, unit: "条" },
-  { description: "每日 Top 5", title: "开源项目雷达", view: "ai-coding-oss", icon: BotIcon, unit: "项" }
+  { description: "项目聚合与提及", title: "开源项目雷达", view: "ai-coding-oss", icon: BotIcon, unit: "项" }
 ];
 
 const systemItems: Array<{
@@ -192,7 +192,7 @@ export function AppSidebar({
               <SidebarMenuItem>
                 <SidebarMenuButton>
                   <ActivityIcon aria-hidden="true" />
-                  <span>只读 Dashboard</span>
+                  <span>受控项目添加</span>
                   <span className="ml-auto size-2 rounded-full bg-chart-1" aria-label="运行正常" />
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -203,7 +203,7 @@ export function AppSidebar({
 
       <SidebarFooter>
         <div className="rounded-xl border border-sidebar-border bg-background/70 p-3 text-xs leading-5 text-muted-foreground shadow-xs">
-          浏览与查询留在这里；写入和迁移继续使用 Docker CLI。
+          笔记、信号与表格保持只读；开源项目可受控添加，其他写入和迁移继续使用 Docker CLI。
         </div>
       </SidebarFooter>
     </Sidebar>

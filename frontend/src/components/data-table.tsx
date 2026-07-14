@@ -1,4 +1,4 @@
-import { ExternalLinkIcon, EyeIcon, Loader2Icon, Table2Icon } from "lucide-react";
+import { ExternalLinkIcon, EyeIcon, Loader2Icon, PlusIcon, Table2Icon } from "lucide-react";
 import type { CSSProperties, MouseEvent as ReactMouseEvent, PointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -11,9 +11,12 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -76,6 +79,7 @@ export function DataTable({
   isLoading,
   news,
   notes,
+  onCodingOssChanged,
   onViewChange,
   tables,
   view
@@ -84,6 +88,7 @@ export function DataTable({
   isLoading: boolean;
   news: AiNewsItem[];
   notes: Note[];
+  onCodingOssChanged: () => void;
   onViewChange: (view: DashboardView) => void;
   tables: TableSummary[];
   view: DashboardView;
@@ -172,12 +177,14 @@ export function DataTable({
 
     setDetail({
       title: item.project_name,
-      description: `排名 #${item.digest_rank} · ${formatDateOnly(item.brief_date)}`,
+      description: `提及 ${item.mention_count} 次 · 最近提及 ${formatDateOnly(item.last_mentioned_at)}`,
       body,
       source: item.repo_url,
       metadata: [
         { label: "语言", value: item.primary_language ?? "未知" },
-        { label: "日报日期", value: formatDateOnly(item.brief_date) }
+        { label: "首次提及", value: formatDateOnly(item.first_mentioned_at) },
+        { label: "最近提及", value: formatDateOnly(item.last_mentioned_at) },
+        { label: "提及次数", value: `${item.mention_count} 次` }
       ]
     });
   }
@@ -268,7 +275,7 @@ export function DataTable({
             </TabsTrigger>
           </TabsList>
           <Badge className="w-fit" variant="outline">
-            只读浏览
+            项目可受控添加
           </Badge>
         </div>
 
@@ -285,10 +292,11 @@ export function DataTable({
         </TabsContent>
 
         <TabsContent className="relative flex flex-col gap-4 overflow-auto" value="ai-coding-oss">
-          <DataCard description="默认聚焦最新日报，也可以切换到全部项目" title="开源项目雷达">
+          <DataCard description="按仓库合并日报与手动添加记录，默认展示全部项目" title="开源项目雷达">
             <AiCodingOssTable
               codingItems={codingItems}
               isLoading={isLoading}
+              onAdded={onCodingOssChanged}
               onOpenDetail={openCodingItem}
             />
           </DataCard>
@@ -605,22 +613,19 @@ function NewsTable({
 function AiCodingOssTable({
   codingItems,
   isLoading,
+  onAdded,
   onOpenDetail
 }: {
   codingItems: AiCodingOssItem[];
   isLoading: boolean;
+  onAdded: () => void;
   onOpenDetail: (item: AiCodingOssItem) => void;
 }) {
   const [page, setPage] = useState(1);
-  const [mode, setMode] = useState<"latest" | "all">("latest");
-  const latestBriefDate = codingItems[0]?.brief_date ?? "";
-  const visibleItems = useMemo(
-    () =>
-      mode === "latest" && latestBriefDate
-        ? codingItems.filter((item) => item.brief_date === latestBriefDate)
-        : codingItems,
-    [codingItems, latestBriefDate, mode]
-  );
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [repoUrl, setRepoUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const visibleItems = codingItems;
   const languageCount = new Set(visibleItems.map((item) => item.primary_language).filter(Boolean)).size;
   const pageCount = Math.max(1, Math.ceil(visibleItems.length / AI_CODING_PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -634,53 +639,59 @@ function AiCodingOssTable({
 
   useEffect(() => {
     setPage(1);
-  }, [mode, visibleItems]);
+  }, [codingItems]);
+
+  async function submitManualRepository(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!repoUrl.trim()) {
+      toast.error("请输入 GitHub 仓库地址。");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await api.addManualAiCodingOss(repoUrl.trim());
+      toast.success(`已分析 ${result.item.project_name}，当前提及 ${result.item.mention_count} 次。`);
+      setRepoUrl("");
+      setDialogOpen(false);
+      onAdded();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "仓库分析失败，请稍后重试。");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="overflow-hidden rounded-lg border">
       <div className="flex flex-col gap-3 border-b bg-muted/20 p-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <div className="text-sm font-medium">
-            {latestBriefDate ? `${formatDateOnly(latestBriefDate)} 最新日报` : "开源项目观察"}
-          </div>
+          <div className="text-sm font-medium">全部开源项目</div>
           <div className="text-sm text-muted-foreground">
-            当前显示 {visibleItems.length} 项 · {languageCount || 0} 种主要语言
+            已合并重复日报：当前 {visibleItems.length} 项 · {languageCount || 0} 种主要语言
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={() => setMode("latest")}
-            size="sm"
-            type="button"
-            variant={mode === "latest" ? "default" : "outline"}
-          >
-            最新日报
-          </Button>
-          <Button
-            onClick={() => setMode("all")}
-            size="sm"
-            type="button"
-            variant={mode === "all" ? "default" : "outline"}
-          >
-            全部项目
-          </Button>
-        </div>
+        <Button onClick={() => setDialogOpen(true)} size="sm" type="button">
+          <PlusIcon data-icon="inline-start" />
+          手动添加仓库
+        </Button>
       </div>
       <div className="overflow-x-auto">
-        <Table className="w-full min-w-[960px] table-fixed">
+        <Table className="w-full min-w-[1080px] table-fixed">
           <TableHeader className="bg-muted">
             <TableRow>
-              <TableHead className="w-[24%]">项目</TableHead>
-              <TableHead className="w-[30%]">一句话定位</TableHead>
-              <TableHead className="w-[12%]">主要语言</TableHead>
-              <TableHead className="w-[20%]">热度指标</TableHead>
-              <TableHead className="w-[14%]">标签</TableHead>
+              <TableHead className="w-[20%]">项目</TableHead>
+              <TableHead className="w-[28%]">一句话定位</TableHead>
+              <TableHead className="w-[10%]">主要语言</TableHead>
+              <TableHead className="w-[18%]">热度指标</TableHead>
+              <TableHead className="w-[9%]">提及次数</TableHead>
+              <TableHead className="w-[15%]">标签</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? <LoadingRows columns={5} /> : null}
+            {isLoading ? <LoadingRows columns={6} /> : null}
             {!isLoading && codingItems.length === 0 ? (
-              <EmptyRow columns={5} label="没有匹配当前搜索的开源项目。" />
+              <EmptyRow columns={6} label="没有匹配当前搜索的开源项目。" />
             ) : null}
             {!isLoading
               ? pageItems.map((item) => (
@@ -696,8 +707,7 @@ function AiCodingOssTable({
                           {item.project_name}
                         </button>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span>#{item.digest_rank}</span>
-                          <span>{formatDateOnly(item.brief_date)}</span>
+                          <span>最近 {formatDateOnly(item.last_mentioned_at)}</span>
                           <Button asChild aria-label={`打开仓库 ${item.project_name}`} size="icon-xs" variant="ghost">
                             <a href={item.repo_url} rel="noreferrer" target="_blank">
                               <ExternalLinkIcon />
@@ -725,6 +735,15 @@ function AiCodingOssTable({
                         type="button"
                       >
                         {item.momentum_text}
+                      </button>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <button
+                        className="text-left text-sm font-medium tabular-nums underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        onClick={() => onOpenDetail(item)}
+                        type="button"
+                      >
+                        {item.mention_count} 次
                       </button>
                     </TableCell>
                     <TableCell className="whitespace-normal break-words align-top">
@@ -764,6 +783,40 @@ function AiCodingOssTable({
           </Button>
         </div>
       </div>
+      <Dialog onOpenChange={setDialogOpen} open={dialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>手动添加 GitHub 仓库</DialogTitle>
+            <DialogDescription>
+              系统会读取公开仓库信息与 README，并通过 AI 生成定位、语言、热度指标和标签。
+            </DialogDescription>
+          </DialogHeader>
+          <form className="grid gap-4" onSubmit={submitManualRepository}>
+            <div className="grid gap-2">
+              <Label htmlFor="manual-repository-url">仓库地址</Label>
+              <Input
+                autoComplete="url"
+                disabled={isSubmitting}
+                id="manual-repository-url"
+                onChange={(event) => setRepoUrl(event.target.value)}
+                placeholder="https://github.com/owner/repository"
+                required
+                type="url"
+                value={repoUrl}
+              />
+            </div>
+            <DialogFooter>
+              <Button disabled={isSubmitting} onClick={() => setDialogOpen(false)} type="button" variant="outline">
+                取消
+              </Button>
+              <Button disabled={isSubmitting} type="submit">
+                {isSubmitting ? <Loader2Icon className="animate-spin" data-icon="inline-start" /> : null}
+                {isSubmitting ? "正在分析" : "分析并添加"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

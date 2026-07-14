@@ -161,6 +161,10 @@ export function App() {
                         isLoading={loading}
                         news={news}
                         notes={notes}
+                        onCodingOssChanged={() => {
+                          setQuery("");
+                          void fetchDashboard("");
+                        }}
                         onViewChange={setView}
                         tables={tables}
                         view={view}
@@ -174,6 +178,10 @@ export function App() {
                       isLoading={loading}
                       news={news}
                       notes={notes}
+                      onCodingOssChanged={() => {
+                        setQuery("");
+                        void fetchDashboard("");
+                      }}
                       onViewChange={setView}
                       tables={tables}
                       view={view}

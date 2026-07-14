@@ -56,7 +56,7 @@ function buildActivity(notes: Note[], news: AiNewsItem[], codingItems: AiCodingO
   }
 
   for (const item of codingItems) {
-    const key = dayKey(item.brief_date ?? item.digest_run_at ?? item.created_at);
+    const key = dayKey(item.last_mentioned_at ?? item.updated_at ?? item.created_at);
     if (!key) continue;
     const current = grouped.get(key) ?? { coding: 0, date: key, notes: 0, news: 0 };
     current.coding += 1;
@@ -100,7 +100,7 @@ export function ChartAreaInteractive({
       <CardHeader>
         <CardTitle>内容活动趋势</CardTitle>
         <CardDescription>
-          <span className="hidden @[540px]/card:block">按日期汇总笔记、AI 信号和开源项目日报</span>
+          <span className="hidden @[540px]/card:block">按日期汇总笔记、AI 信号和开源项目提及</span>
           <span className="@[540px]/card:hidden">近期内容活动</span>
         </CardDescription>
         <CardAction>

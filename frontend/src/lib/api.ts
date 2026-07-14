@@ -29,8 +29,13 @@ export const api = {
     request<{ items: AiNewsItem[] }>(`/api/ai-news?limit=50${query ? `&query=${encodeURIComponent(query)}` : ""}`),
   aiCodingOss: (query = "") =>
     request<{ items: AiCodingOssItem[] }>(
-      `/api/ai-coding-oss?limit=100${query ? `&query=${encodeURIComponent(query)}` : ""}`
+      `/api/ai-coding-oss?limit=500${query ? `&query=${encodeURIComponent(query)}` : ""}`
     ),
+  addManualAiCodingOss: (repoUrl: string) =>
+    request<{ item: AiCodingOssItem; manual_mention_count: number }>("/api/ai-coding-oss/manual", {
+      method: "POST",
+      body: JSON.stringify({ repo_url: repoUrl })
+    }),
   tables: () => request<{ items: TableSummary[] }>("/api/tables"),
   table: (name: string) => request<TableDetail>(`/api/tables/${encodeURIComponent(name)}`),
   tableRows: (name: string, limit = 50) =>
