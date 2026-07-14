@@ -1,6 +1,6 @@
 # Local PostgreSQL Dashboard
 
-一个本地优先的 PostgreSQL 工作台。项目用 Docker Compose 启动 PostgreSQL、自动初始化数据库 schema、提供 FastAPI 只读 API，并用 React Dashboard 展示数据。
+一个本地优先的 PostgreSQL 工作台。项目用 Docker Compose 启动 PostgreSQL、自动初始化数据库 schema，并提供可在本机维护个人数据的 Dashboard。
 
 默认入口：
 
@@ -8,22 +8,18 @@
 http://localhost:15173
 ```
 
-同一家庭网络里的其他设备访问：
-
-```text
-http://<Host-LAN-IP>:15173
-```
+默认仅本机访问。局域网访问是带访问令牌的显式可选模式，见 [本地优先安全模型](docs/local-security.md)。
 
 ## 功能范围
 
 - PostgreSQL 17 本地数据库，数据保存在 Docker volume 中。
-- Docker 自动初始化 `notes`、`agent_test_items`、`ai_news_items` 表。
+- Docker 自动初始化项目所需的表、索引与 Dashboard 受限角色。
 - Dockerized SQL 工具服务 `db-tools`，不要求用户安装本地 PostgreSQL client。
 - React/Vite Dashboard，包含 Overview、Notes、AI News、Tables、Read-only Query。
-- FastAPI 后端，只读访问数据库，默认不直接暴露到宿主机。
+- FastAPI 后端不直接暴露到宿主机；Dashboard 默认仅绑定 `127.0.0.1`。
 - 可选 agent skill 模板，让 Codex、Kimi、Claude Code、Gemini 等 agent 学会用 Docker CLI 操作数据库。
 
-当前配置适合本机和可信家庭局域网，不是公网生产环境配置。
+默认配置适合安全的本机个人数据维护；不是公网生产环境配置。
 
 ## 前提条件
 
@@ -58,7 +54,19 @@ git clone https://github.com/coconilu/local-db.git
 cd local-db
 ```
 
-首次启动：
+首次启动前，复制环境模板并填入两个不同的高强度随机密码：
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+然后编辑 `.env`，再启动：
 
 ```bash
 docker compose up -d --build
@@ -70,7 +78,7 @@ docker compose up -d --build
 http://localhost:15173
 ```
 
-如需使用「开源项目雷达」里的“手动添加仓库”AI 分析功能，先复制 `.env.example` 为 `.env`，并填写 OpenAI 配置：
+如需使用「开源项目雷达」里的“手动添加仓库”AI 分析功能，在同一个 `.env` 中填写：
 
 ```text
 OPENAI_API_KEY=你的密钥
@@ -88,6 +96,7 @@ docker compose run --rm -T db-tools -c "select table_name from information_schem
 ```text
 agent_test_items
 ai_news_items
+ai_coding_oss_manual_projects
 notes
 ```
 
@@ -194,11 +203,7 @@ docker compose down -v
 
 ## 数据库初始化
 
-`docker compose up -d --build` 会启动一次性服务 `db-init`，它会执行：
-
-- `local-postgres-tools/schema.sql`
-- `migrations/001_create_agent_test_items.sql`
-- `migrations/002_create_ai_news_items.sql`
+`docker compose up -d --build` 会启动一次性服务 `db-init`，它会执行 `local-postgres-tools/schema.sql` 与 `migrations/` 中已接入 Compose 的公开 schema/权限脚本。
 
 这些 SQL 是幂等的，可以安全重复执行。
 
@@ -218,11 +223,11 @@ docker compose run --rm -T db-tools -f /migrations/001_create_agent_test_items.s
 
 | 服务 | 容器名 | 说明 | 对外端口 |
 | --- | --- | --- | --- |
-| `postgres` | `local-postgres` | PostgreSQL 17 | `5432` |
+| `postgres` | `local-postgres` | PostgreSQL 17，仅本机绑定 | `127.0.0.1:5432` |
 | `db-init` | Compose 自动命名 | 一次性 schema 初始化服务 | 不暴露 |
 | `db-tools` | 临时容器 | Dockerized `psql` 工具 | 不暴露 |
-| `dashboard-api` | `local-postgres-dashboard-api` | FastAPI 只读 API | 不暴露 |
-| `dashboard-web` | `local-postgres-dashboard-web` | Vite React Dashboard | `15173` |
+| `dashboard-api` | `local-postgres-dashboard-api` | FastAPI，使用受限 `dashboard_user` | 不暴露 |
+| `dashboard-web` | `local-postgres-dashboard-web` | Vite React Dashboard，仅本机绑定 | `127.0.0.1:15173` |
 
 Compose 内部连接方式：
 
@@ -231,12 +236,7 @@ Compose 内部连接方式：
 - `db-tools` 连接数据库：`postgres:5432`
 - 浏览器访问 Web：`http://localhost:15173`
 
-`15173` 是宿主机端口。容器内部 Vite 仍然运行在 `5173`。如果想改端口，修改 `compose.yaml`：
-
-```yaml
-ports:
-  - "0.0.0.0:18080:5173"
-```
+`15173` 是宿主机端口。容器内部 Vite 仍然运行在 `5173`。如需改端口，修改 `.env` 中的 `LOCAL_DB_DASHBOARD_PORT`；不要修改 `compose.yaml`。
 
 ## Dashboard 使用手册
 
@@ -397,38 +397,7 @@ curl -sS -H "Content-Type: application/json" \
 
 ## 局域网访问
 
-查看本机局域网 IP：
-
-Windows:
-
-```powershell
-ipconfig
-```
-
-macOS:
-
-```bash
-ipconfig getifaddr en0
-```
-
-Linux:
-
-```bash
-hostname -I
-```
-
-同一 Wi-Fi 或局域网里的设备访问：
-
-```text
-http://<Host-LAN-IP>:15173
-```
-
-如果打不开，优先检查：
-
-- 防火墙是否允许入站访问 `15173`。
-- 两台设备是否在同一个局域网。
-- Dashboard 容器是否运行：`docker compose ps`。
-- URL 端口是否写成了 `15173`。
+默认配置不开放局域网。需要时请严格按 [本地优先安全模型](docs/local-security.md#可选局域网模式) 启用，并保留访问令牌与防火墙边界。
 
 ## 项目结构
 
@@ -486,12 +455,15 @@ docker compose config
 
 ## 安全边界
 
-当前配置适合本机和可信局域网开发，不建议直接暴露到公网：
+默认安全边界如下：
 
-- PostgreSQL 端口 `5432` 暴露在 `0.0.0.0`，方便局域网访问。
-- Dashboard 没有登录系统。
-- API 是只读设计，但数据库本身仍接受有效凭据连接。
-- `compose.yaml` 里包含本地开发用数据库配置。公开仓库或多人使用时，建议改为 `.env` 管理。
+- PostgreSQL 与 Dashboard 只绑定 `127.0.0.1`，不会监听局域网或公网。
+- 真实密码、OpenAI 密钥和访问令牌只存在于 Git 忽略的 `.env`。
+- Dashboard 使用非超级用户角色，无法管理角色、数据库或 PostgreSQL 服务器文件。
+- `local-data/` 与 Docker volume 不会提交到 Git；公开项目只保留可复现结构。
+- 局域网模式必须启用访问令牌，且不应设置路由器端口转发。
+
+完整说明见 [本地优先安全模型](docs/local-security.md)。
 
 ## 常见问题
 
@@ -511,11 +483,10 @@ curl http://127.0.0.1:15173/api/health
 
 ### `15173` 端口被占用
 
-修改 `compose.yaml`：
+修改 `.env`：
 
-```yaml
-ports:
-  - "0.0.0.0:18080:5173"
+```text
+LOCAL_DB_DASHBOARD_PORT=18080
 ```
 
 然后重新启动：
@@ -524,18 +495,9 @@ ports:
 docker compose up -d --build dashboard-web
 ```
 
-### 其他设备无法访问
+### 局域网设备无法访问
 
-检查：
-
-- 宿主机局域网 IP 是否正确。
-- 使用的是 `http://<Host-LAN-IP>:15173`。
-- 宿主机防火墙是否放行 `15173`。
-- `dashboard-web` 端口是否为 `0.0.0.0:15173->5173/tcp`：
-
-```bash
-docker compose ps
-```
+局域网模式默认关闭。请先确认按 [局域网模式说明](docs/local-security.md#可选局域网模式) 启动，并使用正确的访问令牌。
 
 ### 想完全重来
 

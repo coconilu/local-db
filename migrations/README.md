@@ -1,6 +1,8 @@
-# Migrations
+# Public schema migrations
 
-Put table-creation and schema-change SQL files here.
+Only table creation, indexes, constraints, and permission migrations belong here. They are part of the reproducible public project and are applied by `db-init`.
+
+Do not put personal notes, daily reports, source exports, repair scripts, or secret-bearing SQL in this directory. Put those files under the Git-ignored `local-data/` directory instead.
 
 The bundled SQL files are applied automatically by the Docker Compose `db-init` service during startup:
 
@@ -20,7 +22,7 @@ Apply one migration file:
 docker compose run --rm -T db-tools -f /migrations/001_create_agent_test_items.sql
 ```
 
-Use timestamped or numbered file names, for example:
+Use ordered file names, for example:
 
 ```text
 001_create_agent_test_items.sql

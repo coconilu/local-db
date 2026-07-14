@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 from contextlib import contextmanager
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -10,22 +11,52 @@ from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
 import psycopg
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from psycopg.conninfo import make_conninfo
 from psycopg import sql as pg_sql
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://app:adsl%401234@localhost:5432/localdb",
-)
+def database_url_from_environment() -> str:
+    explicit_url = os.environ.get("DATABASE_URL", "").strip()
+    if explicit_url:
+        return explicit_url
+
+    fields = {
+        "host": os.environ.get("DATABASE_HOST", "").strip(),
+        "port": os.environ.get("DATABASE_PORT", "5432").strip(),
+        "dbname": os.environ.get("DATABASE_NAME", "").strip(),
+        "user": os.environ.get("DATABASE_USER", "").strip(),
+        "password": os.environ.get("DATABASE_PASSWORD", "").strip(),
+    }
+    missing = [name for name, value in fields.items() if not value]
+    if missing:
+        raise RuntimeError(f"Missing database configuration: {', '.join(missing)}")
+    return make_conninfo(**fields)
+
+
+DATABASE_URL = database_url_from_environment()
+REQUIRE_DASHBOARD_AUTH = os.environ.get("REQUIRE_DASHBOARD_AUTH", "false").strip().lower() in {"1", "true", "yes"}
+DASHBOARD_ACCESS_TOKEN = os.environ.get("DASHBOARD_ACCESS_TOKEN", "").strip()
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "DASHBOARD_ALLOWED_ORIGINS",
+        "http://127.0.0.1:15173,http://localhost:15173",
+    ).split(",")
+    if origin.strip()
+]
+
+if REQUIRE_DASHBOARD_AUTH and not DASHBOARD_ACCESS_TOKEN:
+    raise RuntimeError("DASHBOARD_ACCESS_TOKEN is required when REQUIRE_DASHBOARD_AUTH=true")
 
 MAX_LIMIT = 500
 WRITE_KEYWORDS = re.compile(
-    r"\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|call|merge|vacuum|analyze|refresh|listen|notify)\b",
+    r"\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|copy|call|merge|vacuum|analyze|refresh|listen|notify|into|set|prepare|execute|do)\b",
     re.IGNORECASE,
 )
 
@@ -34,11 +65,25 @@ app = FastAPI(title="Local Postgres Dashboard API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+
+@app.middleware("http")
+async def require_dashboard_access_token(request: Request, call_next: Any) -> Any:
+    if (
+        REQUIRE_DASHBOARD_AUTH
+        and request.url.path.startswith("/api/")
+        and request.method != "OPTIONS"
+    ):
+        authorization = request.headers.get("Authorization", "")
+        expected = f"Bearer {DASHBOARD_ACCESS_TOKEN}"
+        if not secrets.compare_digest(authorization, expected):
+            return JSONResponse(status_code=401, content={"detail": "Dashboard access token is required"})
+    return await call_next(request)
 
 
 class ReadOnlyQuery(BaseModel):
@@ -652,9 +697,11 @@ def delete_table_row(table_name: str, row_id: int) -> dict[str, Any]:
 
 @app.post("/api/query/read-only")
 def read_only_query(payload: ReadOnlyQuery) -> dict[str, Any]:
-    sql = payload.sql.strip().rstrip(";")
+    sql = payload.sql.strip()
     if not sql:
         raise HTTPException(status_code=400, detail="SQL is required")
+    if ";" in sql:
+        raise HTTPException(status_code=400, detail="Only one SQL statement is allowed")
     if not re.match(r"^(select|with)\b", sql, re.IGNORECASE):
         raise HTTPException(status_code=400, detail="Only SELECT or WITH queries are allowed")
     if WRITE_KEYWORDS.search(sql):
